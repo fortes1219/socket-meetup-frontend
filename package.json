@@ -1,0 +1,40 @@
+{
+  "name": "socket-meetup-frontend",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vue-tsc -b && vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@quasar/extras": "^2.0.0",
+    "@tanstack/vue-query": "^5.100.14",
+    "@ts-rest/core": "^3.52.1",
+    "axios": "^1.16.1",
+    "klinecharts": "10.0.0-beta2",
+    "pinia": "^3.0.4",
+    "quasar": "^2.19.3",
+    "socket.io-client": "^4.8.3",
+    "vue": "^3.5.34",
+    "vue-router": "^5.1.0",
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "@quasar/vite-plugin": "^1.12.0",
+    "@types/node": "^24.12.3",
+    "@typescript/native-preview": "7.0.0-dev.20260527.2",
+    "@vitejs/plugin-vue": "^6.0.6",
+    "@vue/eslint-config-typescript": "^14.7.0",
+    "@vue/tsconfig": "^0.9.1",
+    "eslint": "^10.4.1",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-vue": "^10.9.1",
+    "prettier": "^3.8.3",
+    "sass-embedded": "^1.100.0",
+    "typescript": "^6.0.3",
+    "vite": "^8.0.12",
+    "vue-tsc": "^3.3.3"
+  }
+}
