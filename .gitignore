@@ -12,6 +12,16 @@ dist
 dist-ssr
 *.local
 
+# Internal AI-control docs
+CLAUDE.md
+ARCHITECTURE.md
+.claude/
+
+# Environment files
+.env
+.env.*
+!.env.example
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
