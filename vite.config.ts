@@ -6,13 +6,13 @@ import vue from '@vitejs/plugin-vue';
 export default defineConfig({
   plugins: [
     vue({
-      template: { transformAssetUrls },
+      template: { transformAssetUrls }
     }),
-    quasar(),
+    quasar()
   ],
   resolve: {
     alias: {
-      '@': fileURLToPath(new URL('./src', import.meta.url)),
-    },
-  },
+      '@': fileURLToPath(new URL('./src', import.meta.url))
+    }
+  }
 });

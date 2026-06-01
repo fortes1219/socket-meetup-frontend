@@ -13,9 +13,7 @@
         <q-card class="home-card">
           <q-card-section>
             <div class="text-h5">Kline Demo</div>
-            <div class="text-body2 text-grey-7">
-              Quasar UI 已接入。下一步會串接交易對、歷史 K 線與即時行情。
-            </div>
+            <div class="text-body2 text-grey-7">Quasar UI 已接入。下一步會串接交易對、歷史 K 線與即時行情。</div>
           </q-card-section>
 
           <q-separator />

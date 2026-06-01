@@ -1,0 +1,8 @@
+node_modules/
+dist/
+coverage/
+.claude/
+ARCHITECTURE.md
+CLAUDE.md
+docs/backend-contracts.md
+package-lock.json

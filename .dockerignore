@@ -5,6 +5,7 @@
 CLAUDE.md
 ARCHITECTURE.md
 dist/
+coverage/
 node_modules/
 
 .env
