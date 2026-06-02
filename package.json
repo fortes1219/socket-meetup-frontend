@@ -6,8 +6,8 @@
   "scripts": {
     "dev": "vite",
     "build": "vue-tsc -b && vite build",
-    "format": "prettier --write \"src/**/*.{ts,vue,scss}\" \"eslint.config.js\" \"vite.config.ts\" \"vitest.config.ts\" \"package.json\" \"README.md\"",
-    "format:check": "prettier --check \"src/**/*.{ts,vue,scss}\" \"eslint.config.js\" \"vite.config.ts\" \"vitest.config.ts\" \"package.json\" \"README.md\"",
+    "format": "prettier --write \"src/**/*.{ts,vue,scss}\" \"tests/**/*.{ts,tsx}\" \"eslint.config.js\" \"vite.config.ts\" \"vitest.config.ts\" \"package.json\" \"README.md\"",
+    "format:check": "prettier --check \"src/**/*.{ts,vue,scss}\" \"tests/**/*.{ts,tsx}\" \"eslint.config.js\" \"vite.config.ts\" \"vitest.config.ts\" \"package.json\" \"README.md\"",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "preview": "vite preview",
