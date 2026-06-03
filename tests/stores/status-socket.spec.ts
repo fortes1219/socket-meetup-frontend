@@ -57,4 +57,18 @@ describe('status-socket store', () => {
     store.bind(socket);
     expect(store.connectionState).toBe('connected');
   });
+
+  it('valid callUpdate 才 lastCallUpdateNonce++，invalid 不加（事件語意）', () => {
+    const store = useStatusSocketStore();
+    const socket = createFakeSocket();
+    store.bind(socket);
+    expect(store.lastCallUpdateNonce).toBe(0);
+
+    socket.fire('callUpdate', { resource: 'trading-pairs', timestamp: 1 });
+    socket.fire('callUpdate', { resource: 'trading-pairs', timestamp: 2 });
+    expect(store.lastCallUpdateNonce).toBe(2);
+
+    socket.fire('callUpdate', { resource: 'other', timestamp: 3 }); // invalid
+    expect(store.lastCallUpdateNonce).toBe(2);
+  });
 });

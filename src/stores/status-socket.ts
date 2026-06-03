@@ -13,6 +13,8 @@ export const useStatusSocketStore = defineStore('status-socket', () => {
   const connectionState = ref<SocketConnectionState>('disconnected');
   const lastCallUpdate = shallowRef<CallUpdatePayload | null>(null);
   const lastCallUpdateAt = ref<number | null>(null);
+  /** 事件 nonce：每筆 valid callUpdate +1（invalid 不加），給 control-coordinator 以事件語意觸發。 */
+  const lastCallUpdateNonce = ref(0);
   const lastDisconnectReason = ref<string | null>(null);
   /** D7 trigger flag：非 silent（server 主動）斷線時亮起，Dialog UI 延後 Phase C。 */
   const reconnectPromptPending = ref(false);
@@ -29,6 +31,7 @@ export const useStatusSocketStore = defineStore('status-socket', () => {
     }
     lastCallUpdate.value = payload;
     lastCallUpdateAt.value = payload.timestamp;
+    lastCallUpdateNonce.value += 1;
   }
 
   function handleConnect(): void {
@@ -68,6 +71,7 @@ export const useStatusSocketStore = defineStore('status-socket', () => {
     connectionState,
     lastCallUpdate,
     lastCallUpdateAt,
+    lastCallUpdateNonce,
     lastDisconnectReason,
     reconnectPromptPending,
     invalidPayloadCount,

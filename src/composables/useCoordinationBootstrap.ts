@@ -2,6 +2,7 @@ import { computed, onScopeDispose } from 'vue';
 import { useLeaderCoordinatorStore } from '@/stores/leader-coordinator';
 import { useQuoteSocketStore } from '@/stores/quote-socket';
 import { useStatusSocketStore } from '@/stores/status-socket';
+import { useControlCoordinatorStore } from '@/stores/control-coordinator';
 import { getSocketHub } from '@/service/socket/manager';
 import { useSocketLifecycle } from '@/composables/useSocketLifecycle';
 
@@ -16,6 +17,9 @@ export function useCoordinationBootstrap(): void {
   const quoteStore = useQuoteSocketStore();
   const statusStore = useStatusSocketStore();
   const hub = getSocketHub();
+
+  // 實例化即 wire control coherence（觀察 leader/status state + control BroadcastChannel）。
+  useControlCoordinatorStore();
 
   leader.start();
 
