@@ -1,8 +1,9 @@
 import { z } from 'zod';
 
 /**
- * `GET /api/v1/klines` 歷史 K 線 DTO（REST snake_case，金額為 decimal string）。
+ * `GET /api/v1/klines` 歷史 K 線 runtime validator（REST snake_case，金額為 decimal string）。
  * 注意：REST 是 `open_time`（snake_case），與 `/quote` socket 的 `openTime`（camelCase）刻意不同，不共用。
+ * 只負責 runtime parse；endpoint DTO 型別由 `service/api/klines.ts` 從 ts-rest route infer。
  */
 export const KlineSchema = z
   .object({
@@ -16,12 +17,11 @@ export const KlineSchema = z
     trades_count: z.number().int()
   })
   .strict();
-export type Kline = z.infer<typeof KlineSchema>;
 
 /**
- * `GET /api/v1/klines` query 參數。
+ * `GET /api/v1/klines` query runtime validator。
  * `limit` 是 frontend local guard（positive int）；backend 未承諾 max limit，故此處不設上限。
- * `endTime` 維持 camelCase，對齊 backend wire。
+ * `endTime` 維持 camelCase，對齊 backend wire。query 型別由 api 層從 route infer。
  */
 export const KlinesQuerySchema = z
   .object({
@@ -31,4 +31,3 @@ export const KlinesQuerySchema = z
     endTime: z.number().int().optional()
   })
   .strict();
-export type KlinesQuery = z.infer<typeof KlinesQuerySchema>;
