@@ -211,40 +211,46 @@ export function createLeaderCoordinator(
     resetStale();
   }
 
+  function handleRequestLeader(): void {
+    if (role.value !== 'leader' || leaderTerm.value === null) return;
+    post('leader-announcement', { term: leaderTerm.value });
+    post('leader-heartbeat', { term: leaderTerm.value });
+  }
+
+  function handleLeaderSignal(message: LeaderMessage): void {
+    if (!message.term) return;
+    rememberTerm(message.term);
+    lastHeartbeatAt = clock.now();
+    clearClaim();
+
+    const currentLeaderTerm = leaderTerm.value;
+    if (role.value !== 'leader' || currentLeaderTerm === null) {
+      becomeFollower();
+      return;
+    }
+
+    // 收到較新 term 即 step down，**不分 visible / hidden**；
+    // hidden 因節流漏接 message 的情況，由回 visible 的 re-sync 補判（onVisibilityChange）。
+    if (compareLeaderTerm(message.term, currentLeaderTerm) > 0) stepDownToFollower();
+  }
+
+  function handleLeaderRelease(message: LeaderMessage): void {
+    if (message.term) rememberTerm(message.term);
+    lastHeartbeatAt = null;
+    if (visibility.isVisible()) scheduleClaim();
+  }
+
+  const messageHandlers: Record<LeaderMessageType, (message: LeaderMessage) => void> = {
+    'request-leader': handleRequestLeader,
+    'leader-announcement': handleLeaderSignal,
+    'leader-heartbeat': handleLeaderSignal,
+    'leader-release': handleLeaderRelease
+  };
+
   function onMessage(raw: unknown): void {
     const message = asLeaderMessage(raw);
     if (message === null || message.instanceId === instanceId) return;
-
-    switch (message.type) {
-      case 'request-leader': {
-        if (role.value === 'leader' && leaderTerm.value !== null) {
-          post('leader-announcement', { term: leaderTerm.value });
-          post('leader-heartbeat', { term: leaderTerm.value });
-        }
-        break;
-      }
-      case 'leader-announcement':
-      case 'leader-heartbeat': {
-        if (!message.term) break;
-        rememberTerm(message.term);
-        lastHeartbeatAt = clock.now();
-        clearClaim();
-        if (role.value === 'leader' && leaderTerm.value !== null) {
-          // 收到較新 term 即 step down，**不分 visible / hidden**；
-          // hidden 因節流漏接 message 的情況，由回 visible 的 re-sync 補判（onVisibilityChange）。
-          if (compareLeaderTerm(message.term, leaderTerm.value) > 0) stepDownToFollower();
-        } else {
-          becomeFollower();
-        }
-        break;
-      }
-      case 'leader-release': {
-        if (message.term) rememberTerm(message.term);
-        lastHeartbeatAt = null;
-        if (visibility.isVisible()) scheduleClaim();
-        break;
-      }
-    }
+    messageHandlers[message.type](message);
   }
 
   function onVisibilityChange(): void {
@@ -267,6 +273,14 @@ export function createLeaderCoordinator(
     if (role.value !== 'leader' && !hasFreshOtherLeader()) scheduleClaim();
   }
 
+  function scheduleInitialLeadershipCheck(): void {
+    if (visibility.isVisible()) {
+      scheduleClaim();
+      return;
+    }
+    resetStale();
+  }
+
   function start(): void {
     // dispose() 之後 start() 明確 no-op（不重新 subscribe / post / 競選）。
     if (disposed || started) return;
@@ -274,8 +288,7 @@ export function createLeaderCoordinator(
     unsubscribeChannel = channel.subscribe(onMessage);
     unsubscribeVisibility = visibility.subscribe(onVisibilityChange);
     post('request-leader');
-    if (visibility.isVisible()) scheduleClaim();
-    else resetStale();
+    scheduleInitialLeadershipCheck();
   }
 
   function stop(): void {

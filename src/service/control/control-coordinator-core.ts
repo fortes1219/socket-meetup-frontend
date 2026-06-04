@@ -7,6 +7,7 @@ import { compareLeaderTerm, type LeaderTerm } from '@/service/leader/leader-term
 import {
   parseControlMessage,
   type ControlInvalidated,
+  type ControlMessage,
   type ControlSyncRequest,
   type ControlUpdated
 } from '@/service/control/messages';
@@ -236,19 +237,27 @@ export function createControlCoordinator(deps: ControlCoordinatorDeps): ControlC
     });
   }
 
-  function handleInvalidated(message: ControlInvalidated): void {
-    if (knownLeaderTerm !== null) {
-      const cmp = compareLeaderTerm(message.leaderTerm, knownLeaderTerm);
-      if (cmp < 0) return; // stale term
-      if (cmp === 0 && message.sequence <= lastAppliedSequence.value) return; // stale sequence：已套用過
-    }
-    adoptTermIfNewer(message.leaderTerm);
-    if (awaitingSnapshot && compareLeaderTerm(awaitingSnapshot.leaderTerm, message.leaderTerm) === 0) {
-      awaitingSnapshot.sequence = Math.max(awaitingSnapshot.sequence, message.sequence);
-    } else {
+  function isStaleInvalidated(message: ControlInvalidated): boolean {
+    if (knownLeaderTerm === null) return false;
+    const cmp = compareLeaderTerm(message.leaderTerm, knownLeaderTerm);
+    if (cmp < 0) return true; // stale term
+    return cmp === 0 && message.sequence <= lastAppliedSequence.value; // stale sequence：已套用過
+  }
+
+  function upsertAwaitingSnapshot(message: ControlInvalidated): AwaitingSnapshot {
+    if (awaitingSnapshot === null || compareLeaderTerm(awaitingSnapshot.leaderTerm, message.leaderTerm) !== 0) {
       awaitingSnapshot = { leaderTerm: message.leaderTerm, sequence: message.sequence };
+      return awaitingSnapshot;
     }
-    awaitingSequence.value = awaitingSnapshot.sequence;
+    awaitingSnapshot.sequence = Math.max(awaitingSnapshot.sequence, message.sequence);
+    return awaitingSnapshot;
+  }
+
+  function handleInvalidated(message: ControlInvalidated): void {
+    if (isStaleInvalidated(message)) return;
+    adoptTermIfNewer(message.leaderTerm);
+    const nextAwaiting = upsertAwaitingSnapshot(message);
+    awaitingSequence.value = nextAwaiting.sequence;
     startAwaitingTimer();
   }
 
@@ -271,10 +280,10 @@ export function createControlCoordinator(deps: ControlCoordinatorDeps): ControlC
   function onAwaitingTimeout(): void {
     awaitingTimer = null;
     if (awaitingSnapshot === null) return;
-    if (visibility.isVisible()) {
-      if (!pendingCoversAwaiting()) broadcastSyncRequest();
-    }
     // hidden：不送 sync-request，defer 到 visible（B2）。
+    if (!visibility.isVisible()) return;
+    if (pendingCoversAwaiting()) return;
+    broadcastSyncRequest();
   }
 
   function onVisibilityChange(): void {
@@ -287,16 +296,31 @@ export function createControlCoordinator(deps: ControlCoordinatorDeps): ControlC
     if (awaitingSnapshot !== null) broadcastSyncRequest();
   }
 
+  function dispatchSyncRequest(message: ControlMessage): void {
+    if (!isLeader.value) return;
+    handleSyncRequest(message as ControlSyncRequest);
+  }
+
+  function dispatchFollowerInvalidated(message: ControlMessage): void {
+    if (isLeader.value) return; // leader 不處理 invalidated/updated（自家訊息也收不到）
+    handleInvalidated(message as ControlInvalidated);
+  }
+
+  function dispatchFollowerUpdated(message: ControlMessage): void {
+    if (isLeader.value) return; // leader 不處理 invalidated/updated（自家訊息也收不到）
+    handleUpdated(message as ControlUpdated);
+  }
+
+  const messageHandlers: Record<ControlMessage['type'], (message: ControlMessage) => void> = {
+    'control:sync-request': dispatchSyncRequest,
+    'control:invalidated': dispatchFollowerInvalidated,
+    'control:updated': dispatchFollowerUpdated
+  };
+
   function handleMessage(raw: unknown): void {
     const message = parseControlMessage(raw);
     if (message === null) return;
-    if (message.type === 'control:sync-request') {
-      if (isLeader.value) handleSyncRequest(message);
-      return;
-    }
-    if (isLeader.value) return; // leader 不處理 invalidated/updated（自家訊息也收不到）
-    if (message.type === 'control:invalidated') handleInvalidated(message);
-    else handleUpdated(message);
+    messageHandlers[message.type](message);
   }
 
   function start(): void {

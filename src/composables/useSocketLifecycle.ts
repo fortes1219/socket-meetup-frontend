@@ -23,25 +23,28 @@ export interface SocketLifecycleDeps {
 export function useSocketLifecycle(deps: SocketLifecycleDeps): void {
   const { isLeader, hub, quoteStore, statusStore } = deps;
 
+  function bindConnectedSockets(): void {
+    if (hub.quoteSocket) quoteStore.bind(hub.quoteSocket);
+    if (hub.rootSocket) statusStore.bind(hub.rootSocket);
+  }
+
+  function setupLeaderSockets(): void {
+    hub.connect();
+    bindConnectedSockets();
+  }
+
   function teardown(): void {
     quoteStore.unbind();
     statusStore.unbind();
     hub.disconnect();
   }
 
-  watch(
-    isLeader,
-    leader => {
-      if (leader) {
-        hub.connect();
-        if (hub.quoteSocket) quoteStore.bind(hub.quoteSocket);
-        if (hub.rootSocket) statusStore.bind(hub.rootSocket);
-      } else {
-        teardown();
-      }
-    },
-    { immediate: true }
-  );
+  const lifecycleByRole: Record<'leader' | 'follower', () => void> = {
+    leader: setupLeaderSockets,
+    follower: teardown
+  };
+
+  watch(isLeader, leader => lifecycleByRole[leader ? 'leader' : 'follower'](), { immediate: true });
 
   onScopeDispose(teardown);
 }
