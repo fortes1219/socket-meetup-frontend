@@ -12,7 +12,7 @@ import { useQuoteSocketStore } from '@/stores/quote-socket';
 // 預設 SHIBUSDT 必須帶 pricePrecision=8（價格 0.000005xx，預設 2 會把圖壓成平線）。
 // 注意：withDefaults 工廠會被 hoist 出 setup，故只能內聯字面值，不可引用區域常數。
 const props = withDefaults(defineProps<{ symbol?: SymbolInfo }>(), {
-  symbol: () => ({ ticker: 'SHIBUSDT', pricePrecision: 8, volumePrecision: 2 })
+  symbol: () => ({ ticker: 'BTCUSDT', pricePrecision: 8, volumePrecision: 2 })
 });
 
 const container = ref<HTMLElement | null>(null);
