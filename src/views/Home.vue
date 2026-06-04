@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import { useTradingPairsQuery } from '@/queries/use-trading-pairs-query';
+import KlineChart from '@/components/kline/KlineChart.vue';
 
 const { data, isPending, isError, error } = useTradingPairsQuery();
 
@@ -48,6 +49,8 @@ const errorCode = computed(() => error.value?.code ?? 'unknown_error');
             </q-list>
           </q-card-section>
         </q-card>
+
+        <KlineChart />
       </q-page>
     </q-page-container>
   </q-layout>

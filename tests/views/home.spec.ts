@@ -44,7 +44,9 @@ const STUBS = {
   QSpinner: Passthrough,
   QList: Passthrough,
   QItem: Passthrough,
-  QItemSection: Passthrough
+  QItemSection: Passthrough,
+  // KlineChart 有自己的 store / chart 依賴與測試；Home 四態 smoke 不需深掛載它。
+  KlineChart: true
 };
 
 function mountHome() {
