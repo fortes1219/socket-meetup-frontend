@@ -1,10 +1,14 @@
 import { onBeforeUnmount, onMounted, shallowRef, type Ref } from 'vue';
-import { dispose, init, type Chart } from 'klinecharts';
+import { dispose, init, type Chart, type SymbolInfo } from 'klinecharts';
 import type { KlineFeed } from '@/composables/useKlineFeed';
 
 export interface UseKlineChartOptions {
-  /** symbol fixed at mount for this slice：本刀不做 reactive symbol switching，props 變動不會 re-setSymbol。 */
-  symbol: string;
+  /**
+   * symbol metadata fixed at mount for this slice：必須含 pricePrecision / volumePrecision。
+   * SHIBUSDT 價格 0.000005xx，缺 precision 會用 klinecharts 預設 2 → Y 軸全擠 0.00 → 視覺平線。
+   * 本刀不做 reactive symbol switching，props 變動不會 re-setSymbol。
+   */
+  symbol: SymbolInfo;
   feed: KlineFeed;
 }
 
@@ -39,7 +43,8 @@ export function useKlineChart(container: Ref<HTMLElement | null>, options: UseKl
       }
       chart = created;
       // symbol fixed at mount：不 watch props.symbol、不 resubscribe（本刀僅 SHIBUSDT / 1m）。
-      chart.setSymbol({ ticker: options.symbol });
+      // 帶完整 SymbolInfo（含 pricePrecision）才不會把小價格圖壓成平線。
+      chart.setSymbol(options.symbol);
       chart.setPeriod({ type: 'minute', span: 1 });
       chart.setDataLoader(options.feed.dataLoader);
       initialized.value = true;

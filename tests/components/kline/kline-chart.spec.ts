@@ -28,9 +28,12 @@ vi.mock('@/stores/leader-coordinator', async () => {
   return { useLeaderCoordinatorStore: () => store };
 });
 
+import { createPinia, setActivePinia } from 'pinia';
 import KlineChart from '@/components/kline/KlineChart.vue';
 import { useKlineChart } from '@/composables/useKlineChart';
 import { useLeaderCoordinatorStore } from '@/stores/leader-coordinator';
+import { useQuoteSocketStore } from '@/stores/quote-socket';
+import type { KlineTick } from '@/service/socket/quote';
 
 const Passthrough = defineComponent({ template: '<div><slot /></div>' });
 const STUBS = {
@@ -42,27 +45,45 @@ const STUBS = {
 
 const leaderStore = useLeaderCoordinatorStore() as unknown as { isLeader: boolean };
 
+function tick(overrides: Partial<KlineTick> = {}): KlineTick {
+  return {
+    symbol: 'SHIBUSDT',
+    interval: '1m',
+    openTime: 1700000000000,
+    open: '0',
+    high: '0',
+    low: '0',
+    close: '0',
+    volume: '0',
+    closed: false,
+    ...overrides
+  };
+}
+
 beforeEach(() => {
+  setActivePinia(createPinia()); // 現價走真 quote-socket store；leader/feed 仍 mock。
   vi.clearAllMocks();
   leaderStore.isLeader = false;
 });
 
 describe('KlineChart.vue', () => {
-  it('mount：init 一次，setSymbol(SHIBUSDT) / setPeriod(1m) / setDataLoader 各一次', async () => {
+  it('mount：init 一次，setSymbol(SHIBUSDT+precision) / setPeriod(1m) / setDataLoader 各一次', async () => {
     mount(KlineChart, { global: { stubs: STUBS } });
     await nextTick();
     expect(h.init).toHaveBeenCalledTimes(1);
-    expect(h.setSymbol).toHaveBeenCalledWith({ ticker: 'SHIBUSDT' });
+    // SHIBUSDT 必須帶 pricePrecision=8，否則小價格圖被壓平。
+    expect(h.setSymbol).toHaveBeenCalledWith({ ticker: 'SHIBUSDT', pricePrecision: 8, volumePrecision: 2 });
     expect(h.setPeriod).toHaveBeenCalledWith({ type: 'minute', span: 1 });
     expect(h.setDataLoader).toHaveBeenCalledTimes(1);
     expect(h.setDataLoader).toHaveBeenCalledWith(DATA_LOADER);
   });
 
-  it('傳 symbol="BTCUSDT" → 標題顯示 BTCUSDT · 1m，setSymbol({ticker:"BTCUSDT"})', async () => {
-    const wrapper = mount(KlineChart, { props: { symbol: 'BTCUSDT' }, global: { stubs: STUBS } });
+  it('傳完整 SymbolInfo（BTCUSDT）→ 標題與 setSymbol metadata 一致', async () => {
+    const btc = { ticker: 'BTCUSDT', pricePrecision: 2, volumePrecision: 2 };
+    const wrapper = mount(KlineChart, { props: { symbol: btc }, global: { stubs: STUBS } });
     await nextTick();
     expect(wrapper.text()).toContain('BTCUSDT · 1m');
-    expect(h.setSymbol).toHaveBeenCalledWith({ ticker: 'BTCUSDT' });
+    expect(h.setSymbol).toHaveBeenCalledWith(btc);
   });
 
   it('unmount：dispose chart 一次', async () => {
@@ -94,13 +115,52 @@ describe('KlineChart.vue', () => {
   });
 });
 
+describe('KlineChart.vue 現價（latestTick）', () => {
+  it('default 無 tick → 現價 --', async () => {
+    const wrapper = mount(KlineChart, { global: { stubs: STUBS } });
+    await nextTick();
+    expect(wrapper.find('[data-test="current-price"]').text()).toContain('現價 --');
+  });
+
+  it('latestTick SHIBUSDT/1m close=0.00000491 → 0.00000491（pricePrecision=8）', async () => {
+    const wrapper = mount(KlineChart, { global: { stubs: STUBS } });
+    await nextTick();
+    const quote = useQuoteSocketStore();
+    quote.latestTick = tick({ symbol: 'SHIBUSDT', interval: '1m', close: '0.00000491' });
+    await nextTick();
+    expect(wrapper.find('[data-test="current-price"]').text()).toContain('現價 0.00000491');
+  });
+
+  it('latestTick symbol/interval 不匹配 → 仍顯示 --', async () => {
+    const wrapper = mount(KlineChart, { global: { stubs: STUBS } });
+    await nextTick();
+    const quote = useQuoteSocketStore();
+    quote.latestTick = tick({ symbol: 'BTCUSDT', interval: '1m', close: '123.45' });
+    await nextTick();
+    expect(wrapper.find('[data-test="current-price"]').text()).toContain('現價 --');
+    quote.latestTick = tick({ symbol: 'SHIBUSDT', interval: '5m', close: '0.00000491' });
+    await nextTick();
+    expect(wrapper.find('[data-test="current-price"]').text()).toContain('現價 --');
+  });
+
+  it('BTCUSDT SymbolInfo pricePrecision=2 + close=123.456 → 123.46', async () => {
+    const btc = { ticker: 'BTCUSDT', pricePrecision: 2, volumePrecision: 2 };
+    const wrapper = mount(KlineChart, { props: { symbol: btc }, global: { stubs: STUBS } });
+    await nextTick();
+    const quote = useQuoteSocketStore();
+    quote.latestTick = tick({ symbol: 'BTCUSDT', interval: '1m', close: '123.456' });
+    await nextTick();
+    expect(wrapper.find('[data-test="current-price"]').text()).toContain('現價 123.46');
+  });
+});
+
 // symbol fixed at mount for this slice：以下驗證 init 成功 / 失敗的 composable 狀態。
 describe('useKlineChart 狀態（initialized / initError）', () => {
   const Harness = defineComponent({
     setup() {
       const container = ref<HTMLElement | null>(null);
       const { initialized, initError } = useKlineChart(container, {
-        symbol: 'SHIBUSDT',
+        symbol: { ticker: 'SHIBUSDT', pricePrecision: 8, volumePrecision: 2 },
         feed: { dataLoader: DATA_LOADER, dispose: () => {} }
       });
       return { container, initialized, initError };
