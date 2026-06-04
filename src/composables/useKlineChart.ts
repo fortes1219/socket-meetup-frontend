@@ -1,6 +1,7 @@
 import { onBeforeUnmount, onMounted, shallowRef, type Ref } from 'vue';
 import { dispose, init, type Chart, type SymbolInfo } from 'klinecharts';
 import type { KlineFeed } from '@/composables/useKlineFeed';
+import { KLINE_CHART_STYLES } from '@/service/kline/chart-styles';
 
 export interface UseKlineChartOptions {
   /**
@@ -42,6 +43,7 @@ export function useKlineChart(container: Ref<HTMLElement | null>, options: UseKl
         return;
       }
       chart = created;
+      chart.setStyles(KLINE_CHART_STYLES);
       // symbol fixed at mount：不 watch props.symbol、不 resubscribe（本刀僅 SHIBUSDT / 1m）。
       // 帶完整 SymbolInfo（含 pricePrecision）才不會把小價格圖壓成平線。
       chart.setSymbol(options.symbol);

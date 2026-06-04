@@ -6,8 +6,9 @@
     BlinkMacSystemFont,
     'Segoe UI',
     sans-serif;
-  color: #1f2937;
-  background: #f8fafc;
+  color: #e5e7eb;
+  background: #020617;
+  color-scheme: dark;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
@@ -29,6 +30,9 @@ body,
 
 body {
   min-width: 320px;
+  background:
+    radial-gradient(circle at top left, rgb(14 165 233 / 18%), transparent 32rem),
+    radial-gradient(circle at top right, rgb(34 197 94 / 10%), transparent 28rem), #020617;
 }
 
 button,

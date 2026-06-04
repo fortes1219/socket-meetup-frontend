@@ -38,11 +38,11 @@ const currentPrice = computed(() => {
   <q-card class="kline-card">
     <q-card-section>
       <div class="text-h6">{{ props.symbol.ticker }} · 1m</div>
-      <div data-test="current-price" class="text-subtitle1">現價 {{ currentPrice }}</div>
-      <div class="text-body2 text-grey-7">Phase D：history 任意分頁可見；realtime tick 僅 leader 分頁。</div>
+      <div data-test="current-price" class="current-price">現價 {{ currentPrice }}</div>
+      <div class="text-body2 kline-caption">Phase D：history 任意分頁可見；realtime tick 僅 leader 分頁。</div>
     </q-card-section>
 
-    <q-banner v-if="isFollower" data-test="follower-hint" dense class="bg-grey-2 text-grey-8">
+    <q-banner v-if="isFollower" data-test="follower-hint" dense class="follower-hint">
       此分頁非 leader：僅顯示歷史 K 線；realtime 更新只在 leader 分頁。
     </q-banner>
 
@@ -58,10 +58,40 @@ const currentPrice = computed(() => {
 .kline-card {
   width: min(100%, 48rem);
   margin-inline: auto;
+  color: #e5e7eb;
+  background: rgb(15 23 42 / 88%);
+  border: 1px solid rgb(148 163 184 / 16%);
+  box-shadow: 0 24px 80px rgb(0 0 0 / 38%);
+}
+
+.kline-card :deep(.q-separator) {
+  background: rgb(148 163 184 / 14%);
+}
+
+.current-price {
+  margin-top: 0.25rem;
+  color: #67e8f9;
+  font-size: 1.25rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.kline-caption {
+  color: #94a3b8;
+}
+
+.follower-hint {
+  color: #fde68a;
+  background: rgb(113 63 18 / 34%);
+  border-block: 1px solid rgb(251 191 36 / 20%);
 }
 
 .kline-container {
   width: 100%;
   height: 360px;
+  background: #020617;
+  border: 1px solid rgb(148 163 184 / 12%);
+  border-radius: 12px;
+  overflow: hidden;
 }
 </style>

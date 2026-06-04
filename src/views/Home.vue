@@ -12,7 +12,7 @@ const errorCode = computed(() => error.value?.code ?? 'unknown_error');
 
 <template>
   <q-layout view="hHh lpR fFf">
-    <q-header elevated>
+    <q-header elevated class="home-header">
       <q-toolbar>
         <q-icon name="candlestick_chart" size="sm" />
         <q-toolbar-title>Socket Meetup</q-toolbar-title>
@@ -62,11 +62,38 @@ const errorCode = computed(() => error.value?.code ?? 'unknown_error');
   align-content: start;
   gap: 1rem;
   padding: 2rem;
-  background: #f8fafc;
+  min-height: calc(100vh - 50px);
+  color: #e5e7eb;
+  background:
+    linear-gradient(180deg, rgb(15 23 42 / 92%), rgb(2 6 23 / 96%)),
+    radial-gradient(circle at 25% 0%, rgb(14 165 233 / 20%), transparent 24rem);
+}
+
+.home-header {
+  color: #e5e7eb;
+  background: rgb(2 6 23 / 88%);
+  border-bottom: 1px solid rgb(148 163 184 / 18%);
+  backdrop-filter: blur(14px);
 }
 
 .home-card {
   width: min(100%, 48rem);
   margin-inline: auto;
+  color: #e5e7eb;
+  background: rgb(15 23 42 / 86%);
+  border: 1px solid rgb(148 163 184 / 16%);
+  box-shadow: 0 24px 80px rgb(0 0 0 / 38%);
+}
+
+.home-card :deep(.q-separator) {
+  background: rgb(148 163 184 / 14%);
+}
+
+.home-card :deep(.q-item) {
+  color: #e5e7eb;
+}
+
+.home-card :deep(.q-item__section--side) {
+  color: #94a3b8;
 }
 </style>

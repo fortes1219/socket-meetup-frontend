@@ -4,12 +4,13 @@ import { defineComponent, nextTick, ref } from 'vue';
 
 // klinecharts 需真 canvas（happy-dom 無）→ 整個模組 mock；真 render 由 ST-0 + runtime smoke 驗。
 const h = vi.hoisted(() => {
+  const setStyles = vi.fn();
   const setSymbol = vi.fn();
   const setPeriod = vi.fn();
   const setDataLoader = vi.fn();
-  const chart = { setSymbol, setPeriod, setDataLoader };
+  const chart = { setStyles, setSymbol, setPeriod, setDataLoader };
   const init = vi.fn<(container: HTMLElement) => typeof chart | null>(() => chart);
-  return { setSymbol, setPeriod, setDataLoader, chart, init, dispose: vi.fn() };
+  return { setStyles, setSymbol, setPeriod, setDataLoader, chart, init, dispose: vi.fn() };
 });
 vi.mock('klinecharts', () => ({ init: h.init, dispose: h.dispose }));
 
@@ -31,6 +32,7 @@ vi.mock('@/stores/leader-coordinator', async () => {
 import { createPinia, setActivePinia } from 'pinia';
 import KlineChart from '@/components/kline/KlineChart.vue';
 import { useKlineChart } from '@/composables/useKlineChart';
+import { KLINE_CHART_STYLES } from '@/service/kline/chart-styles';
 import { useLeaderCoordinatorStore } from '@/stores/leader-coordinator';
 import { useQuoteSocketStore } from '@/stores/quote-socket';
 import type { KlineTick } from '@/service/socket/quote';
@@ -71,6 +73,7 @@ describe('KlineChart.vue', () => {
     mount(KlineChart, { global: { stubs: STUBS } });
     await nextTick();
     expect(h.init).toHaveBeenCalledTimes(1);
+    expect(h.setStyles).toHaveBeenCalledWith(KLINE_CHART_STYLES);
     // SHIBUSDT 必須帶 pricePrecision=8，否則小價格圖被壓平。
     expect(h.setSymbol).toHaveBeenCalledWith({ ticker: 'SHIBUSDT', pricePrecision: 8, volumePrecision: 2 });
     expect(h.setPeriod).toHaveBeenCalledWith({ type: 'minute', span: 1 });
