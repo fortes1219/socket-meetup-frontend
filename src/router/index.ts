@@ -7,6 +7,11 @@ const router = createRouter({
       path: '/',
       name: 'Home',
       component: () => import('@/views/Home.vue')
+    },
+    {
+      path: '/admin/trading-pairs',
+      name: 'AdminTradingPairs',
+      component: () => import('@/views/AdminTradingPairs.vue')
     }
   ]
 });

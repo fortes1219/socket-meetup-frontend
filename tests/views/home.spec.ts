@@ -54,7 +54,8 @@ const STUBS = {
   QItem: Passthrough,
   QItemSection: Passthrough,
   SymbolSelector: true,
-  KlineChart: true
+  KlineChart: true,
+  ControlDebugPanel: true
 };
 
 function mountHome() {

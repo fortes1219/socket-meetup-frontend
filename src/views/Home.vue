@@ -3,6 +3,7 @@ import { computed } from 'vue';
 import { useSelectedSymbol } from '@/composables/useSelectedSymbol';
 import SymbolSelector from '@/components/kline/SymbolSelector.vue';
 import KlineChart from '@/components/kline/KlineChart.vue';
+import ControlDebugPanel from '@/components/debug/ControlDebugPanel.vue';
 
 // 唯一 query + selection 來源；Home 不再直接呼 useTradingPairsQuery、不自寫 selection resolve。
 const { pairs, isPending, isError, error, selectedSymbol, selectedSymbolInfo, selectSymbol } = useSelectedSymbol();
@@ -67,6 +68,8 @@ const errorCode = computed(() => error.value?.code ?? 'unknown_error');
             </q-card-section>
           </q-card>
         </template>
+
+        <ControlDebugPanel />
       </q-page>
     </q-page-container>
   </q-layout>
