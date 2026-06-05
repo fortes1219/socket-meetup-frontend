@@ -71,8 +71,7 @@ const STUBS = {
   QCardSection: Passthrough,
   QSeparator: Passthrough,
   QBtn: ButtonStub,
-  AdminTokenField: true, // 有 queryClient 依賴，另檔測；此處 stub
-  ControlDebugPanel: true
+  AdminTokenField: true // 有 queryClient 依賴，另檔測；此處 stub
 };
 
 const pair = {

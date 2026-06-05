@@ -1,9 +1,12 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import { useSelectedSymbol } from '@/composables/useSelectedSymbol';
+import { useCoordinationBootstrap } from '@/composables/useCoordinationBootstrap';
 import SymbolSelector from '@/components/kline/SymbolSelector.vue';
 import KlineChart from '@/components/kline/KlineChart.vue';
 import ControlDebugPanel from '@/components/debug/ControlDebugPanel.vue';
+
+useCoordinationBootstrap();
 
 // 唯一 query + selection 來源；Home 不再直接呼 useTradingPairsQuery、不自寫 selection resolve。
 const { pairs, isPending, isError, error, selectedSymbol, selectedSymbolInfo, selectSymbol } = useSelectedSymbol();

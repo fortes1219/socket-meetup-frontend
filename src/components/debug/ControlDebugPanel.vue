@@ -68,7 +68,20 @@ onScopeDispose(unsubscribe);
 .debug-panel {
   width: min(100%, 48rem);
   margin-inline: auto;
+  color: #cbd5e1;
+  background: rgb(15 23 42 / 82%);
+  border: 1px solid rgb(148 163 184 / 16%);
+  box-shadow: 0 16px 48px rgb(0 0 0 / 28%);
   font-family: monospace;
   font-size: 0.85rem;
+}
+
+.debug-panel :deep(.q-card__section) {
+  display: grid;
+  gap: 0.25rem;
+}
+
+.debug-panel .text-subtitle2 {
+  color: #f8fafc;
 }
 </style>

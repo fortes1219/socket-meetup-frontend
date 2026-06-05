@@ -5,6 +5,11 @@ import type { SymbolInfo } from 'klinecharts';
 import type { AppError } from '@/service/error';
 import type { PublicTradingPair } from '@/service/api/trading-pairs';
 
+const useCoordinationBootstrapMock = vi.hoisted(() => vi.fn());
+vi.mock('@/composables/useCoordinationBootstrap', () => ({
+  useCoordinationBootstrap: useCoordinationBootstrapMock
+}));
+
 // Home 唯一來源：mock useSelectedSymbol（含 query state + selection）。
 vi.mock('@/composables/useSelectedSymbol', async () => {
   const { ref } = await import('vue');
@@ -63,6 +68,7 @@ function mountHome() {
 }
 
 function reset() {
+  useCoordinationBootstrapMock.mockClear();
   state.pairs.value = [];
   state.isPending.value = false;
   state.isError.value = false;
@@ -76,6 +82,13 @@ function pair(symbol: string, order: number): PublicTradingPair {
 }
 
 describe('Home trading-pairs 四態', () => {
+  it('mount 時啟動 realtime coordination bootstrap', async () => {
+    reset();
+    mountHome();
+    await nextTick();
+    expect(useCoordinationBootstrapMock).toHaveBeenCalledTimes(1);
+  });
+
   it('loading', async () => {
     reset();
     state.isPending.value = true;

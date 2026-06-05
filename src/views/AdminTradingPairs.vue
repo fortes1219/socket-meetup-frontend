@@ -6,7 +6,6 @@ import { useCreatePair, useDeletePair, usePatchPair } from '@/queries/use-admin-
 import AdminTokenField from '@/components/admin/AdminTokenField.vue';
 import CreatePairForm from '@/components/admin/CreatePairForm.vue';
 import AdminPairRow from '@/components/admin/AdminPairRow.vue';
-import ControlDebugPanel from '@/components/debug/ControlDebugPanel.vue';
 
 const tokenStore = useAdminTokenStore();
 const query = useAdminTradingPairsQuery();
@@ -112,8 +111,6 @@ function onDelete(id: string): void {
             </q-card-section>
           </template>
         </q-card>
-
-        <ControlDebugPanel />
       </q-page>
     </q-page-container>
   </q-layout>
@@ -125,10 +122,41 @@ function onDelete(id: string): void {
   align-content: start;
   gap: 1rem;
   padding: 2rem;
+  min-height: 100vh;
+  color: #e5e7eb;
+  background:
+    radial-gradient(circle at top left, rgb(14 116 144 / 18%), transparent 32rem),
+    linear-gradient(180deg, #020617 0%, #0f172a 100%);
 }
 
 .admin-card {
   width: min(100%, 56rem);
   margin-inline: auto;
+  color: #e5e7eb;
+  background: rgb(15 23 42 / 88%);
+  border: 1px solid rgb(148 163 184 / 16%);
+  box-shadow: 0 24px 80px rgb(0 0 0 / 38%);
+}
+
+.admin-card :deep(.q-separator) {
+  background: rgb(148 163 184 / 14%);
+}
+
+.admin-card :deep(input) {
+  color: #e5e7eb;
+  background: #020617;
+  border: 1px solid rgb(148 163 184 / 28%);
+  border-radius: 4px;
+  padding: 0.45rem 0.55rem;
+}
+
+.admin-card :deep(input::placeholder) {
+  color: #64748b;
+}
+
+.admin-card :deep(.q-btn:not(.bg-negative)) {
+  color: #e5e7eb;
+  background: rgb(30 41 59 / 84%);
+  border: 1px solid rgb(148 163 184 / 20%);
 }
 </style>

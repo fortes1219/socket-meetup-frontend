@@ -27,7 +27,7 @@ describe('admin-token store', () => {
   it('絕不寫入 localStorage / sessionStorage（in-memory only）', () => {
     const localSpy = vi.spyOn(Storage.prototype, 'setItem');
     const store = useAdminTokenStore();
-    store.setToken('secret');
+    store.setToken('test-admin-token');
     store.clearToken();
     expect(localSpy).not.toHaveBeenCalled();
   });
