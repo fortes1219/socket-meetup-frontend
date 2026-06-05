@@ -1,4 +1,9 @@
-import type { ChannelAdapter, Clock, TimerAdapter, VisibilityAdapter } from '@/service/leader/adapters';
+import type { ChannelAdapter, Clock, TimerAdapter } from '@/service/leader/adapters';
+
+export interface VisibilityAdapter {
+  isVisible(): boolean;
+  subscribe(handler: () => void): () => void;
+}
 
 /** control-coordinator 的 browser-global adapter（沿用 leader 的通用介面，皆可注入做 deterministic test）。 */
 export interface ControlAdapters {

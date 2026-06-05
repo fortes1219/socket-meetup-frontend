@@ -32,7 +32,7 @@ function makeNode(
 ) {
   const isLeader = ref(opts.leader);
   const leaderTerm = shallowRef<LeaderTerm | null>(opts.term);
-  const visibility = env.makeVisibility(opts.visible ?? true);
+  const visibility = env.makeControlVisibility(opts.visible ?? true);
   const gateway = makeGateway();
   const throttle = createSocketEventThrottle({
     random: () => 0,
@@ -131,16 +131,20 @@ describe('control-coordinator leader', () => {
     expect(gateway.fetchTradingPairs).not.toHaveBeenCalled();
   });
 
-  it('acquisition/active → authoritative fetch + publish', async () => {
+  it('notifyAcquire 只重設 sequence，不做 authoritative fetch', async () => {
     const env = createFakeLeaderEnv();
     const rec = recorder(env);
     const { core, gateway } = makeNode(env, 'L', { leader: true, term: TERM_A });
 
-    core.notifyActive();
+    core.notifyCallUpdate();
+    expect(core.controlSequence.value).toBe(1);
+
+    core.notifyAcquire();
     await flushPromises();
 
-    expect(gateway.fetchTradingPairs).toHaveBeenCalledTimes(1);
-    expect(ofType(rec, 'control:updated')).toHaveLength(1);
+    expect(core.controlSequence.value).toBe(0);
+    expect(gateway.fetchTradingPairs).not.toHaveBeenCalled();
+    expect(ofType(rec, 'control:updated')).toHaveLength(0);
   });
 
   it('[B1] sync-request awaiting.sequence > lastPublishedSequence → 必 fetch，不回舊 cache', async () => {

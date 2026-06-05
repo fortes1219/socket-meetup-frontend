@@ -28,6 +28,8 @@ export interface LeaderCoordinator {
   isLeader: ComputedRef<boolean>;
   role: Ref<LeaderRole>;
   leaderTerm: Ref<LeaderTerm | null>;
+  /** visible window 被動讓位後暫停競選；需使用者明確 resume 才重新 request leader。 */
+  isSuspended: Ref<boolean>;
   /** 一旦 leader-term 走過 localStorage degrade path 即為 true。 */
   degraded: Ref<boolean>;
   /** 開始 / 重新開始參與選舉；stop() 後可再次 start()。 */
@@ -36,6 +38,8 @@ export interface LeaderCoordinator {
   stop(): void;
   /** 終結：stop() 後 close channel；dispose 之後不應再 start()。 */
   dispose(): void;
+  /** 使用者確認重新取得 realtime ownership 時呼叫。 */
+  resumeLeadership(): void;
 }
 
 const MESSAGE_TYPES: ReadonlySet<LeaderMessageType> = new Set([
@@ -95,6 +99,7 @@ export function createLeaderCoordinator(
   const role = ref<LeaderRole>('follower');
   const leaderTerm = shallowRef<LeaderTerm | null>(null);
   const degraded = ref(false);
+  const isSuspended = ref(false);
   const isLeader = computed(() => role.value === 'leader');
 
   let lastSeenCounter = 0;
@@ -148,6 +153,7 @@ export function createLeaderCoordinator(
 
   function scheduleClaim(): void {
     clearClaim();
+    if (isSuspended.value) return;
     if (!visibility.isVisible()) return;
     const delay = claimDelayBase + random.next() * claimDelayJitter;
     claimHandle = timers.setTimeout(() => {
@@ -166,6 +172,7 @@ export function createLeaderCoordinator(
   }
 
   function attemptClaim(): void {
+    if (isSuspended.value) return;
     if (!visibility.isVisible()) return;
     if (hasFreshOtherLeader()) {
       becomeFollower();
@@ -211,10 +218,21 @@ export function createLeaderCoordinator(
     resetStale();
   }
 
+  /**
+   * 收到其他 visible tab/window 的 `request-leader` 時才禮讓 leadership。
+   * 單一分頁只是進背景時不 release，避免背景作業或 DevTools 操作造成 socket 無故斷線。
+   */
+  function releaseLeadership(): void {
+    post('leader-release', { term: leaderTerm.value ?? undefined });
+    becomeFollower();
+  }
+
   function handleRequestLeader(): void {
     if (role.value !== 'leader' || leaderTerm.value === null) return;
-    post('leader-announcement', { term: leaderTerm.value });
-    post('leader-heartbeat', { term: leaderTerm.value });
+    // MEMBER 同款：雙視窗競爭時，新 visible 視窗 request-leader，現任 leader 禮讓 release。
+    // 不使用 window focus/blur，避免 DevTools 視窗搶焦點導致誤斷線。
+    if (visibility.isVisible()) isSuspended.value = true;
+    releaseLeadership();
   }
 
   function handleLeaderSignal(message: LeaderMessage): void {
@@ -229,9 +247,11 @@ export function createLeaderCoordinator(
       return;
     }
 
-    // 收到較新 term 即 step down，**不分 visible / hidden**；
-    // hidden 因節流漏接 message 的情況，由回 visible 的 re-sync 補判（onVisibilityChange）。
-    if (compareLeaderTerm(message.term, currentLeaderTerm) > 0) stepDownToFollower();
+    // 收到較新 term 即 step down。若自己仍 visible，這是被動失去 realtime ownership，
+    // 必須進 suspended，避免馬上搶回；由 UI prompt 的 resumeLeadership() 重新取得。
+    if (compareLeaderTerm(message.term, currentLeaderTerm) <= 0) return;
+    if (visibility.isVisible()) isSuspended.value = true;
+    stepDownToFollower();
   }
 
   function handleLeaderRelease(message: LeaderMessage): void {
@@ -255,11 +275,13 @@ export function createLeaderCoordinator(
 
   function onVisibilityChange(): void {
     if (!visibility.isVisible()) {
-      // 變 hidden：停止競選；leader 不因「自己變 hidden」step down。
+      // 變 hidden：不主動 release。單一分頁背景作業仍保留 leader/socket；
+      // 若其他 visible tab/window 出現，會送 request-leader，由 handleRequestLeader 禮讓。
       clearClaim();
       return;
     }
     // 回 visible：re-sync，補捉 hidden 期間可能漏接的 leadership 變動。
+    isSuspended.value = false;
     post('request-leader');
     if (
       role.value === 'leader' &&
@@ -275,6 +297,7 @@ export function createLeaderCoordinator(
 
   function scheduleInitialLeadershipCheck(): void {
     if (visibility.isVisible()) {
+      post('request-leader');
       scheduleClaim();
       return;
     }
@@ -287,7 +310,6 @@ export function createLeaderCoordinator(
     started = true;
     unsubscribeChannel = channel.subscribe(onMessage);
     unsubscribeVisibility = visibility.subscribe(onVisibilityChange);
-    post('request-leader');
     scheduleInitialLeadershipCheck();
   }
 
@@ -306,8 +328,15 @@ export function createLeaderCoordinator(
     unsubscribeVisibility = null;
     role.value = 'follower';
     leaderTerm.value = null;
+    isSuspended.value = false;
     lastHeartbeatAt = null;
     knownLeaderTerm = null;
+  }
+
+  function resumeLeadership(): void {
+    isSuspended.value = false;
+    post('request-leader');
+    scheduleClaim();
   }
 
   function dispose(): void {
@@ -317,5 +346,5 @@ export function createLeaderCoordinator(
     disposed = true;
   }
 
-  return { instanceId, isLeader, role, leaderTerm, degraded, start, stop, dispose };
+  return { instanceId, isLeader, role, leaderTerm, isSuspended, degraded, start, stop, dispose, resumeLeadership };
 }

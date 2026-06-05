@@ -1,11 +1,12 @@
 <script setup lang="ts">
 import { computed } from 'vue';
-import { useTradingPairsQuery } from '@/queries/use-trading-pairs-query';
+import { useSelectedSymbol } from '@/composables/useSelectedSymbol';
+import SymbolSelector from '@/components/kline/SymbolSelector.vue';
 import KlineChart from '@/components/kline/KlineChart.vue';
 
-const { data, isPending, isError, error } = useTradingPairsQuery();
+// 唯一 query + selection 來源；Home 不再直接呼 useTradingPairsQuery、不自寫 selection resolve。
+const { pairs, isPending, isError, error, selectedSymbol, selectedSymbolInfo, selectSymbol } = useSelectedSymbol();
 
-const pairs = computed(() => data.value ?? []);
 const isEmpty = computed(() => !isPending.value && !isError.value && pairs.value.length === 0);
 const errorCode = computed(() => error.value?.code ?? 'unknown_error');
 </script>
@@ -50,7 +51,22 @@ const errorCode = computed(() => error.value?.code ?? 'unknown_error');
           </q-card-section>
         </q-card>
 
-        <KlineChart />
+        <!-- selectable chart：只有 data ready 後渲染；無 registry-known 可選 symbol → precondition state，不渲染 chart。 -->
+        <template v-if="!isPending && !isError">
+          <template v-if="selectedSymbolInfo">
+            <SymbolSelector :pairs="pairs" :selected="selectedSymbol" @select="selectSymbol" />
+            <KlineChart :symbol="selectedSymbolInfo ?? undefined" />
+          </template>
+
+          <q-card v-else data-test="chart-precondition" class="home-card">
+            <q-card-section>
+              <div class="text-h6">尚無可用的 realtime 交易對</div>
+              <div class="text-body2 kline-caption">
+                請確認 backend public list 至少有一個 demo 支援的 symbol（最少 BTCUSDT）。
+              </div>
+            </q-card-section>
+          </q-card>
+        </template>
       </q-page>
     </q-page-container>
   </q-layout>

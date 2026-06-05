@@ -13,7 +13,9 @@ const CONTROL_CHANNEL = 'socket-meetup:control:trading-pairs';
 
 /**
  * Control coherence store：把 core 綁上真實 adapters + queryClient gateway + leader/status state。
- * 觀察 callUpdate nonce（事件語意）、leadership 取得、leader+connected（acquisition/reconnect）以驅動 core。
+ * 觀察 callUpdate nonce（事件語意）與 leadership 取得以驅動 core。
+ * trading-pairs refresh 是 low-frequency correctness protocol，只能由 callUpdate / sync-request 觸發；
+ * socket connected / tab focus 不得自行 refetch，避免 reload/focus request storm。
  */
 export const useControlCoordinatorStore = defineStore('control-coordinator', () => {
   const leader = useLeaderCoordinatorStore();
@@ -38,14 +40,6 @@ export const useControlCoordinatorStore = defineStore('control-coordinator', () 
     () => leader.isLeader,
     isLeader => {
       if (isLeader) core.notifyAcquire();
-    }
-  );
-
-  // leader + connected（acquisition / reconnect）→ authoritative revalidate + publish。
-  watch(
-    () => leader.isLeader && status.connectionState === 'connected',
-    active => {
-      if (active) core.notifyActive();
     }
   );
 

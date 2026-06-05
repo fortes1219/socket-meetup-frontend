@@ -92,7 +92,7 @@ describe('useSocketLifecycle', () => {
     scope.stop();
   });
 
-  it('integration：hub.connect 同步 connected 時，真 store 立即 connected 且 quote re-emit subscribe', async () => {
+  it('integration：hub.connect 同步 connected 時，真 store 立即 connected；handleConnect 不 auto-emit，resubscribe 才送', async () => {
     setActivePinia(createPinia());
     const root = createFakeSocket();
     const quote = createFakeSocket();
@@ -129,6 +129,8 @@ describe('useSocketLifecycle', () => {
 
     expect(realQuoteStore.connectionState).toBe('connected');
     expect(realStatusStore.connectionState).toBe('connected');
+    expect(quote.emits).toHaveLength(0); // handleConnect 不再 auto-emit（re-emit 交給 KlineChart resubscribe / resetData）
+    realQuoteStore.resubscribe();
     expect(quote.emits).toEqual([{ event: 'subscribe', payload: { symbol: 'SHIBUSDT', interval: '1m' } }]);
     scope.stop();
   });

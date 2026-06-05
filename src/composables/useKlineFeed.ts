@@ -1,4 +1,4 @@
-import { onScopeDispose, watch, type Ref } from 'vue';
+import { onScopeDispose, shallowRef, watch, type Ref } from 'vue';
 import { storeToRefs } from 'pinia';
 import type {
   DataLoader,
@@ -31,6 +31,8 @@ export interface KlineFeedDeps {
 
 export interface KlineFeed {
   dataLoader: DataLoader;
+  /** 最新一批 init history 的 close，讓 UI 在 realtime tick 前也能顯示當前已知價格。 */
+  latestHistoryClose: Ref<{ symbol: string; interval: string; close: string } | null>;
   /** 釋放 latestTick watch；component unmount / scope dispose 時呼叫。 */
   dispose(): void;
 }
@@ -54,6 +56,7 @@ export function createKlineFeed(deps: KlineFeedDeps): KlineFeed {
 
   let active: ActiveSubscription | null = null;
   let activeToken: symbol | null = null;
+  const latestHistoryClose = shallowRef<{ symbol: string; interval: string; close: string } | null>(null);
 
   async function getBars(params: DataLoaderGetBarsParams): Promise<void> {
     const { type, timestamp, symbol, period, callback } = params;
@@ -77,6 +80,9 @@ export function createKlineFeed(deps: KlineFeedDeps): KlineFeed {
     }
     try {
       const rows = await fetchKlines(query);
+      if (type === 'init') {
+        latestHistoryClose.value = rows.length === 0 ? null : { symbol: symbol.ticker, interval, close: rows[0].close };
+      }
       // backend 回 open_time DESC → 轉 ascending 才符合 klinecharts。
       callback(mapKlineRowsAscending(rows), { forward: rows.length === limit });
     } catch {
@@ -137,6 +143,7 @@ export function createKlineFeed(deps: KlineFeedDeps): KlineFeed {
 
   return {
     dataLoader: { getBars, subscribeBar, unsubscribeBar },
+    latestHistoryClose,
     dispose
   };
 }

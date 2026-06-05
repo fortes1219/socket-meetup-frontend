@@ -36,8 +36,6 @@ export interface ControlCoordinator {
   notifyCallUpdate(): void;
   /** 成為 leader（isLeader false→true）：reset controlSequence。 */
   notifyAcquire(): void;
-  /** isLeader && connected false→true：authoritative revalidate + publish。 */
-  notifyActive(): void;
   /** 測試 / 內部用；start() 會把 channel 訊息導到此。 */
   handleMessage(raw: unknown): void;
   /** 開始 / 重新開始；stop() 後可再 start()。 */
@@ -146,11 +144,6 @@ export function createControlCoordinator(deps: ControlCoordinatorDeps): ControlC
   function notifyAcquire(): void {
     if (leaderContext() === null) return;
     controlSequence.value = 0;
-  }
-
-  function notifyActive(): void {
-    if (leaderContext() === null) return;
-    void refreshAndPublish();
   }
 
   function handleSyncRequest(message: ControlSyncRequest): void {
@@ -357,7 +350,6 @@ export function createControlCoordinator(deps: ControlCoordinatorDeps): ControlC
     degraded,
     notifyCallUpdate,
     notifyAcquire,
-    notifyActive,
     handleMessage,
     start,
     stop,

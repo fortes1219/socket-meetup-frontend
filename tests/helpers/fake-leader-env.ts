@@ -4,9 +4,10 @@ import type {
   RandomSource,
   StorageAdapter,
   TimerAdapter,
-  TimerHandle,
-  VisibilityAdapter
+  TimerHandle
 } from '@/service/leader/adapters';
+import type { VisibilityAdapter as LeaderVisibilityAdapter } from '@/service/leader/adapters';
+import type { VisibilityAdapter as ControlVisibilityAdapter } from '@/service/control/adapters';
 
 interface ScheduledTimer {
   id: number;
@@ -30,7 +31,10 @@ export interface FakeLeaderEnv {
   makeChannel(id: string): ChannelAdapter;
   disconnect(id: string): void;
   reconnect(id: string): void;
-  makeVisibility(initial: boolean): VisibilityAdapter & { set(visible: boolean): void };
+  makeVisibility(
+    initial: boolean
+  ): LeaderVisibilityAdapter & { set(visible: boolean): void; setSilent(visible: boolean): void };
+  makeControlVisibility(initial: boolean): ControlVisibilityAdapter & { set(visible: boolean): void };
   seededRandom(seed: number): RandomSource;
 }
 
@@ -120,7 +124,28 @@ export function createFakeLeaderEnv(): FakeLeaderEnv {
     }
   };
 
-  function makeVisibility(initial: boolean): VisibilityAdapter & { set(visible: boolean): void } {
+  function makeVisibility(
+    initial: boolean
+  ): LeaderVisibilityAdapter & { set(visible: boolean): void; setSilent(visible: boolean): void } {
+    let visible = initial;
+    const handlers = new Set<() => void>();
+    return {
+      isVisible: () => visible,
+      subscribe: handler => {
+        handlers.add(handler);
+        return () => handlers.delete(handler);
+      },
+      set: next => {
+        visible = next;
+        for (const handler of handlers) handler();
+      },
+      setSilent: next => {
+        visible = next;
+      }
+    };
+  }
+
+  function makeControlVisibility(initial: boolean): ControlVisibilityAdapter & { set(visible: boolean): void } {
     let visible = initial;
     const handlers = new Set<() => void>();
     return {
@@ -155,6 +180,7 @@ export function createFakeLeaderEnv(): FakeLeaderEnv {
     disconnect,
     reconnect,
     makeVisibility,
+    makeControlVisibility,
     seededRandom
   };
 }

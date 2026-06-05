@@ -36,8 +36,17 @@ export const useQuoteSocketStore = defineStore('quote-socket', () => {
   }
 
   function handleConnect(): void {
+    // 只更新狀態，**不** emit subscribe：first-connect 由 KlineChart 觀察 connectionState 呼 resubscribe()；
+    // reconnect/resume 由 chart.resetData() 重新 subscribe（刀3）。避免 handleConnect 與 resetData 雙重 subscribe。
     connectionState.value = 'connected';
-    // reconnect 後 server room 已清，必須重新 subscribe（§backend-contracts §8#7）。
+  }
+
+  /**
+   * public：把當前 currentSubscription 重新送出（connected 且存在才 emit）。
+   * 供 KlineChart 在「首次 connected 且 currentSubscription 已存在」時補送 subscribe；null 時為 no-op。
+   * quote-socket 不認得 klinecharts；resetData（history 補洞）出口在 chart 層，不在此。
+   */
+  function resubscribe(): void {
     emitCurrentSubscription();
   }
 
@@ -66,6 +75,7 @@ export const useQuoteSocketStore = defineStore('quote-socket', () => {
     socket = null;
     bound = false;
     connectionState.value = 'disconnected';
+    // **不清 currentSubscription**：hidden/disconnect 不代表使用者取消訂閱，visible resume 要能訂回當前 symbol（guardrail）。
   }
 
   /** 記錄 currentSubscription；只有 bound 且 connected（= leader）才 emit。 */
@@ -89,6 +99,7 @@ export const useQuoteSocketStore = defineStore('quote-socket', () => {
     bind,
     unbind,
     subscribe,
-    unsubscribe
+    unsubscribe,
+    resubscribe
   };
 });

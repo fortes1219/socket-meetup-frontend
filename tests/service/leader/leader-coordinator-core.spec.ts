@@ -42,7 +42,7 @@ describe('leader election', () => {
     expect(a.leaderTerm.value?.counter).toBe(1);
   });
 
-  it('第二個 tab 收到 heartbeat 後成為 follower、不競選', () => {
+  it('第二個 visible window request-leader → 現任 leader 禮讓並暫停競選，第二個接手', () => {
     const a = makeCoordinator('a', env.makeVisibility(true), 1);
     a.start();
     env.advance(600);
@@ -51,24 +51,65 @@ describe('leader election', () => {
     b.start();
     env.advance(600);
 
-    expect(a.isLeader.value).toBe(true);
-    expect(b.isLeader.value).toBe(false);
-    expect(b.role.value).toBe('follower');
+    expect(a.isLeader.value).toBe(false);
+    expect(a.isSuspended.value).toBe(true);
+    expect(b.isLeader.value).toBe(true);
+
+    env.advance(4000);
+    expect(a.isLeader.value).toBe(false);
+    expect(b.isLeader.value).toBe(true);
   });
 
-  it('leader 失聯超過 stale threshold → follower 接手', () => {
+  it('visible leader 收到 request-leader → release，另一個 visible window 立即接手（雙視窗切換）', () => {
+    const a = makeCoordinator('a', env.makeVisibility(true), 1);
+    a.start();
+    env.advance(600);
+    expect(a.isLeader.value).toBe(true);
+
+    const b = makeCoordinator('b', env.makeVisibility(true), 2);
+    b.start();
+    env.advance(600);
+
+    expect(a.isLeader.value).toBe(false);
+    expect(a.isSuspended.value).toBe(true);
+    expect(b.isLeader.value).toBe(true);
+  });
+
+  it('suspended window 需要 resumeLeadership 才能重新 request leader', () => {
     const a = makeCoordinator('a', env.makeVisibility(true), 1);
     a.start();
     env.advance(600);
     const b = makeCoordinator('b', env.makeVisibility(true), 2);
     b.start();
     env.advance(600);
-    expect(b.isLeader.value).toBe(false);
+    expect(a.isSuspended.value).toBe(true);
+    expect(b.isLeader.value).toBe(true);
 
-    env.disconnect('a'); // 模擬 leader crash：heartbeat 不再送達
-    env.advance(4000);
+    a.resumeLeadership();
+    env.advance(600);
+
+    expect(a.isSuspended.value).toBe(false);
+    expect(a.isLeader.value).toBe(true);
+    expect(b.isLeader.value).toBe(false);
+    expect(b.isSuspended.value).toBe(true);
+  });
+
+  it('hidden follower 不搶 leader；回 visible 才 request 並接手', () => {
+    const a = makeCoordinator('a', env.makeVisibility(true), 1);
+    a.start();
+    env.advance(600);
+    const bVis = env.makeVisibility(false);
+    const b = makeCoordinator('b', bVis, 2);
+    b.start();
+    env.advance(1100); // hidden follower 先收到 leader heartbeat，建立 fresh known leader
+    expect(b.isLeader.value).toBe(false);
+    expect(a.isLeader.value).toBe(true);
+
+    bVis.set(true);
+    env.advance(600);
 
     expect(b.isLeader.value).toBe(true);
+    expect(a.isLeader.value).toBe(false);
     expect(b.leaderTerm.value?.counter).toBe(2);
   });
 
@@ -95,61 +136,28 @@ describe('leader election', () => {
     expect(c.isLeader.value).toBe(true);
   });
 
-  it('leader 變 hidden 不會因此 step down', () => {
-    const visibilityA = env.makeVisibility(true);
-    const a = makeCoordinator('a', visibilityA, 1);
+  it('visible leader 失聯後重連、收到較新 term → step down（handleLeaderSignal）', () => {
+    const a = makeCoordinator('a', env.makeVisibility(true), 1);
     a.start();
     env.advance(600);
-    const b = makeCoordinator('b', env.makeVisibility(true), 2);
+    const bVis = env.makeVisibility(false);
+    const b = makeCoordinator('b', bVis, 2);
     b.start();
-    env.advance(600);
+    env.advance(1100);
     expect(a.isLeader.value).toBe(true);
 
-    visibilityA.set(false);
-    env.advance(1000);
-    expect(a.isLeader.value).toBe(true);
-  });
-
-  it('hidden leader 收到較新 term 立即 step down（不等回 visible）', () => {
-    const visibilityA = env.makeVisibility(true);
-    const a = makeCoordinator('a', visibilityA, 1);
-    a.start();
-    env.advance(600);
-    const b = makeCoordinator('b', env.makeVisibility(true), 2);
-    b.start();
-    env.advance(600);
-
-    // A 轉 hidden 且 heartbeat 暫時送不到 B → B 因 stale 接手；A 在 disconnect 期間漏接
-    visibilityA.set(false);
+    // a 仍 visible（不 hidden，故不 release），但 channel 失聯（crash-like）→ b 回 visible 後等 stale 接手；a 漏接仍以為自己是 leader
     env.disconnect('a');
+    bVis.set(true);
     env.advance(4000);
     expect(a.isLeader.value).toBe(true);
     expect(b.isLeader.value).toBe(true);
 
-    // A 仍 hidden，重新收到 B 的較新 heartbeat → 立即 step down
+    // a 重連（仍 visible）→ 收到 b 的較新 heartbeat → 立即 step down
     env.reconnect('a');
     env.advance(1100);
     expect(a.isLeader.value).toBe(false);
-  });
-
-  it('hidden 期間漏接 message，回 visible 才 silent release', () => {
-    const visibilityA = env.makeVisibility(true);
-    const a = makeCoordinator('a', visibilityA, 1);
-    a.start();
-    env.advance(600);
-    const b = makeCoordinator('b', env.makeVisibility(true), 2);
-    b.start();
-    env.advance(600);
-
-    visibilityA.set(false);
-    env.disconnect('a');
-    env.advance(4000);
-    expect(a.isLeader.value).toBe(true); // 漏接，仍以為自己是 leader
-
-    // resume：channel 復原同時回 visible，但不前進時間（沒有 periodic heartbeat）
-    env.reconnect('a');
-    visibilityA.set(true);
-    expect(a.isLeader.value).toBe(false); // 由 visible re-sync（request-leader）補判而 release
+    expect(a.isSuspended.value).toBe(true);
     expect(b.isLeader.value).toBe(true);
   });
 
@@ -224,5 +232,83 @@ describe('leader election', () => {
     probe.post({ type: 'request-leader', instanceId: 'probe' });
     env.advance(600);
     expect(a.isLeader.value).toBe(false);
+  });
+});
+
+describe('member-style visibility and window handoff', () => {
+  it('single hidden leader keeps leadership and socket ownership intent', () => {
+    const visA = env.makeVisibility(true);
+    const a = makeCoordinator('a', visA, 1);
+    a.start();
+    env.advance(600);
+    expect(a.isLeader.value).toBe(true);
+    expect(a.role.value).toBe('leader');
+    expect(a.leaderTerm.value?.counter).toBe(1);
+
+    visA.set(false);
+    env.advance(600);
+    expect(a.isLeader.value).toBe(true);
+    expect(a.role.value).toBe('leader');
+    expect(a.leaderTerm.value?.counter).toBe(1);
+
+    visA.set(true);
+    env.advance(600);
+    expect(a.isLeader.value).toBe(true);
+    expect(a.leaderTerm.value?.counter).toBe(1);
+  });
+
+  it('hidden leader yields only when another visible tab requests leadership', () => {
+    const visA = env.makeVisibility(true);
+    const a = makeCoordinator('a', visA, 1);
+    a.start();
+    env.advance(600);
+    expect(a.isLeader.value).toBe(true);
+
+    visA.set(false);
+    env.advance(600);
+    expect(a.isLeader.value).toBe(true);
+
+    const b = makeCoordinator('b', env.makeVisibility(true), 2);
+    b.start();
+    env.advance(600);
+
+    expect(a.isLeader.value).toBe(false);
+    expect(b.isLeader.value).toBe(true);
+    expect(b.leaderTerm.value?.counter ?? 0).toBeGreaterThan(1);
+  });
+
+  it('hidden follower does not claim until visible, then requests leadership', () => {
+    const a = makeCoordinator('a', env.makeVisibility(true), 1);
+    a.start();
+    env.advance(600);
+    const bVis = env.makeVisibility(false);
+    const b = makeCoordinator('b', bVis, 2);
+    b.start();
+    env.advance(1100);
+    expect(a.isLeader.value).toBe(true);
+    expect(b.isLeader.value).toBe(false);
+
+    bVis.set(true);
+    env.advance(600);
+    expect(a.isLeader.value).toBe(false);
+    expect(b.isLeader.value).toBe(true);
+  });
+
+  it('regression: stale fallback remains when the leader crashes without release', () => {
+    const a = makeCoordinator('a', env.makeVisibility(true), 1);
+    a.start();
+    env.advance(600);
+    const bVis = env.makeVisibility(false);
+    const b = makeCoordinator('b', bVis, 2);
+    b.start();
+    env.advance(1100);
+    expect(b.isLeader.value).toBe(false);
+
+    env.disconnect('a');
+    bVis.set(true);
+    env.advance(500);
+    expect(b.isLeader.value).toBe(false);
+    env.advance(3000);
+    expect(b.isLeader.value).toBe(true);
   });
 });

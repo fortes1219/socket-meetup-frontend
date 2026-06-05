@@ -37,7 +37,7 @@ describe('quote-socket store', () => {
     expect(store.invalidPayloadCount).toBe(1); // 只 +1，未被處理兩次
   });
 
-  it('[必測2] follower subscribe 不 emit；成為 leader/connected 後 re-emit 一次', () => {
+  it('[必測2] follower subscribe 不 emit；connected 後 handleConnect 不自動 emit，resubscribe() 才 re-emit 一次', () => {
     const store = useQuoteSocketStore();
     const socket = createFakeSocket();
 
@@ -47,7 +47,11 @@ describe('quote-socket store', () => {
 
     store.bind(socket);
     socket.connect();
-    socket.fire('connect'); // leader connected → re-subscribe
+    socket.fire('connect'); // handleConnect 只設 connected，**不** emit
+    expect(socket.emits).toHaveLength(0);
+    expect(store.connectionState).toBe('connected');
+
+    store.resubscribe(); // KlineChart first-connect 補送
     expect(socket.emits).toEqual([{ event: 'subscribe', payload: { symbol: 'BTCUSDT', interval: '1m' } }]);
   });
 
@@ -83,7 +87,7 @@ describe('quote-socket store', () => {
     expect(broadcastSpy).not.toHaveBeenCalled(); // kline tick 絕不進 BroadcastChannel
   });
 
-  it('bind 時 socket 已 connected → 立即 handleConnect（re-emit subscribe + connected）', () => {
+  it('bind 時 socket 已 connected → connectionState connected，但 handleConnect 不 emit', () => {
     const store = useQuoteSocketStore();
     const socket = createFakeSocket();
     store.subscribe('shibusdt', '1m');
@@ -92,6 +96,42 @@ describe('quote-socket store', () => {
     store.bind(socket);
 
     expect(store.connectionState).toBe('connected');
-    expect(socket.emits).toEqual([{ event: 'subscribe', payload: { symbol: 'SHIBUSDT', interval: '1m' } }]);
+    expect(socket.emits).toHaveLength(0); // handleConnect 不再 emit（re-emit 交給 resubscribe / resetData）
+  });
+});
+
+describe('quote-socket resubscribe（刀2：first-connect re-emit 出口）', () => {
+  it('currentSubscription null + connected → resubscribe no-op（不 emit）', () => {
+    const store = useQuoteSocketStore();
+    const socket = createFakeSocket();
+    store.bind(socket);
+    socket.connect();
+    socket.fire('connect');
+
+    store.resubscribe();
+    expect(socket.emits).toHaveLength(0);
+  });
+
+  it('currentSubscription exists + connected → resubscribe emit 一次', () => {
+    const store = useQuoteSocketStore();
+    const socket = createFakeSocket();
+    store.subscribe('ethusdt', '1m'); // follower 記 intent，未 emit
+    expect(socket.emits).toHaveLength(0);
+
+    store.bind(socket);
+    socket.connect();
+    socket.fire('connect'); // 不 auto-emit
+    store.resubscribe(); // 補送一次
+    expect(socket.emits).toEqual([{ event: 'subscribe', payload: { symbol: 'ETHUSDT', interval: '1m' } }]);
+  });
+
+  it('not connected → resubscribe no-op', () => {
+    const store = useQuoteSocketStore();
+    const socket = createFakeSocket();
+    store.subscribe('ethusdt', '1m');
+    store.bind(socket); // bound 但 socket 未 connect
+
+    store.resubscribe();
+    expect(socket.emits).toHaveLength(0);
   });
 });

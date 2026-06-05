@@ -83,6 +83,36 @@ describe('createKlineFeed getBars', () => {
     expect(bars.map((b: { timestamp: number }) => b.timestamp)).toEqual([1700000000000, 1700000060000, 1700000120000]);
   });
 
+  it('init history 記錄最新 close，供現價在 realtime tick 前顯示', async () => {
+    const rows = [row(1700000120000, '63840.24'), row(1700000060000, '63800.00')];
+    const { feed } = setup(() => Promise.resolve(rows));
+    const callback = vi.fn();
+    await feed.dataLoader.getBars({
+      type: 'init',
+      timestamp: null,
+      symbol: { ticker: 'BTCUSDT', pricePrecision: 2, volumePrecision: 5 },
+      period: PERIOD_1M,
+      callback
+    });
+    expect(feed.latestHistoryClose.value).toEqual({ symbol: 'BTCUSDT', interval: '1m', close: '63840.24' });
+  });
+
+  it('forward 載舊資料不覆蓋 latestHistoryClose', async () => {
+    const { feed, fetchKlines } = setup();
+    const callback = vi.fn();
+    fetchKlines.mockResolvedValueOnce([row(1700000120000, '63840.24')]);
+    await feed.dataLoader.getBars({ type: 'init', timestamp: null, symbol: SYMBOL, period: PERIOD_1M, callback });
+    fetchKlines.mockResolvedValueOnce([row(1699990000000, '62000.00')]);
+    await feed.dataLoader.getBars({
+      type: 'forward',
+      timestamp: 1700000000000,
+      symbol: SYMBOL,
+      period: PERIOD_1M,
+      callback
+    });
+    expect(feed.latestHistoryClose.value).toEqual({ symbol: 'SHIBUSDT', interval: '1m', close: '63840.24' });
+  });
+
   it('hasMore = rows.length === 500', async () => {
     const exactly500 = Array.from({ length: 500 }, (_, i) => row(1700000000000 + i * 60000, '1'));
     const { feed } = setup(() => Promise.resolve(exactly500));

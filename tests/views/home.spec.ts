@@ -1,33 +1,41 @@
 import { describe, expect, it, vi } from 'vitest';
 import { mount } from '@vue/test-utils';
 import { defineComponent, nextTick, type Ref } from 'vue';
+import type { SymbolInfo } from 'klinecharts';
 import type { AppError } from '@/service/error';
 import type { PublicTradingPair } from '@/service/api/trading-pairs';
 
-vi.mock('@/queries/use-trading-pairs-query', async () => {
+// Home 唯一來源：mock useSelectedSymbol（含 query state + selection）。
+vi.mock('@/composables/useSelectedSymbol', async () => {
   const { ref } = await import('vue');
   const state = {
-    data: ref<PublicTradingPair[] | undefined>(undefined),
+    pairs: ref<PublicTradingPair[]>([]),
     isPending: ref(false),
     isError: ref(false),
-    error: ref<AppError | null>(null)
+    error: ref<AppError | null>(null),
+    selectedSymbol: ref<string | null>(null),
+    selectedSymbolInfo: ref<SymbolInfo | null>(null),
+    selectSymbol: vi.fn()
   };
-  return { useTradingPairsQuery: () => state };
+  return { useSelectedSymbol: () => state };
 });
 
 import Home from '@/views/Home.vue';
-import { useTradingPairsQuery } from '@/queries/use-trading-pairs-query';
+import KlineChart from '@/components/kline/KlineChart.vue';
+import SymbolSelector from '@/components/kline/SymbolSelector.vue';
+import { useSelectedSymbol } from '@/composables/useSelectedSymbol';
 
 interface MockState {
-  data: Ref<PublicTradingPair[] | undefined>;
+  pairs: Ref<PublicTradingPair[]>;
   isPending: Ref<boolean>;
   isError: Ref<boolean>;
   error: Ref<AppError | null>;
+  selectedSymbol: Ref<string | null>;
+  selectedSymbolInfo: Ref<SymbolInfo | null>;
+  selectSymbol: ReturnType<typeof vi.fn>;
 }
+const state = useSelectedSymbol() as unknown as MockState;
 
-const state = useTradingPairsQuery() as unknown as MockState;
-
-// Quasar chrome 在單元測試以 slot-passthrough stub 取代，避免註冊整套 Quasar 與 ResizeObserver 依賴。
 const Passthrough = defineComponent({ template: '<div><slot /></div>' });
 const STUBS = {
   QLayout: Passthrough,
@@ -45,7 +53,7 @@ const STUBS = {
   QList: Passthrough,
   QItem: Passthrough,
   QItemSection: Passthrough,
-  // KlineChart 有自己的 store / chart 依賴與測試；Home 四態 smoke 不需深掛載它。
+  SymbolSelector: true,
   KlineChart: true
 };
 
@@ -54,10 +62,16 @@ function mountHome() {
 }
 
 function reset() {
-  state.data.value = undefined;
+  state.pairs.value = [];
   state.isPending.value = false;
   state.isError.value = false;
   state.error.value = null;
+  state.selectedSymbol.value = null;
+  state.selectedSymbolInfo.value = null;
+}
+
+function pair(symbol: string, order: number): PublicTradingPair {
+  return { symbol, base_asset: symbol.replace('USDT', ''), quote_asset: 'USDT', display_order: order };
 }
 
 describe('Home trading-pairs 四態', () => {
@@ -71,7 +85,7 @@ describe('Home trading-pairs 四態', () => {
 
   it('success-data', async () => {
     reset();
-    state.data.value = [{ symbol: 'BTCUSDT', base_asset: 'BTC', quote_asset: 'USDT', display_order: 0 }];
+    state.pairs.value = [pair('BTCUSDT', 0)];
     const wrapper = mountHome();
     await nextTick();
     expect(wrapper.find('[data-test="state-data"]').exists()).toBe(true);
@@ -80,7 +94,7 @@ describe('Home trading-pairs 四態', () => {
 
   it('success-empty', async () => {
     reset();
-    state.data.value = [];
+    state.pairs.value = [];
     const wrapper = mountHome();
     await nextTick();
     expect(wrapper.find('[data-test="state-empty"]').exists()).toBe(true);
@@ -94,5 +108,51 @@ describe('Home trading-pairs 四態', () => {
     await nextTick();
     expect(wrapper.find('[data-test="state-error"]').exists()).toBe(true);
     expect(wrapper.text()).toContain('internal_error');
+  });
+});
+
+describe('Home chart 接入', () => {
+  it('data + selectedSymbolInfo → 渲染 SymbolSelector + KlineChart，KlineChart 收到 symbol', async () => {
+    reset();
+    state.pairs.value = [pair('BTCUSDT', 0), pair('ETHUSDT', 1)];
+    state.selectedSymbol.value = 'BTCUSDT';
+    state.selectedSymbolInfo.value = { ticker: 'BTCUSDT', pricePrecision: 2, volumePrecision: 5 };
+    const wrapper = mountHome();
+    await nextTick();
+    expect(wrapper.find('[data-test="chart-precondition"]').exists()).toBe(false);
+    const chart = wrapper.findComponent(KlineChart);
+    expect(chart.exists()).toBe(true);
+    expect(chart.props('symbol')).toEqual({ ticker: 'BTCUSDT', pricePrecision: 2, volumePrecision: 5 });
+  });
+
+  it('SymbolSelector emit select → 呼叫 useSelectedSymbol().selectSymbol(symbol)', async () => {
+    reset();
+    state.pairs.value = [pair('BTCUSDT', 0), pair('ETHUSDT', 1)];
+    state.selectedSymbol.value = 'BTCUSDT';
+    state.selectedSymbolInfo.value = { ticker: 'BTCUSDT', pricePrecision: 2, volumePrecision: 5 };
+    const wrapper = mountHome();
+    await nextTick();
+    wrapper.findComponent(SymbolSelector).vm.$emit('select', 'ETHUSDT');
+    expect(state.selectSymbol).toHaveBeenCalledWith('ETHUSDT');
+  });
+
+  it('selectedSymbolInfo null（無可選 known symbol）→ 不渲染 chart，顯示 precondition', async () => {
+    reset();
+    state.pairs.value = [pair('XRPUSDT', 0)]; // 非 registry-known
+    state.selectedSymbol.value = null;
+    state.selectedSymbolInfo.value = null;
+    const wrapper = mountHome();
+    await nextTick();
+    expect(wrapper.find('[data-test="chart-precondition"]').exists()).toBe(true);
+    expect(wrapper.findComponent(KlineChart).exists()).toBe(false);
+  });
+
+  it('pending → 不渲染 chart 也不顯示 precondition', async () => {
+    reset();
+    state.isPending.value = true;
+    const wrapper = mountHome();
+    await nextTick();
+    expect(wrapper.find('[data-test="chart-precondition"]').exists()).toBe(false);
+    expect(wrapper.findComponent(KlineChart).exists()).toBe(false);
   });
 });
