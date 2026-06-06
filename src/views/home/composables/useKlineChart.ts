@@ -1,6 +1,6 @@
 import { onBeforeUnmount, onMounted, shallowRef, toValue, watch, type MaybeRefOrGetter, type Ref } from 'vue';
 import { dispose, init, type Chart, type SymbolInfo } from 'klinecharts';
-import type { KlineFeed } from '@/composables/useKlineFeed';
+import type { KlineFeed } from './useKlineFeed';
 import { KLINE_CHART_STYLES } from '@/service/kline/chart-styles';
 
 export interface UseKlineChartOptions {

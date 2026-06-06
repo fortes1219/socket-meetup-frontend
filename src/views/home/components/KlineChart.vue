@@ -2,8 +2,8 @@
 import { computed, ref, watch } from 'vue';
 import { storeToRefs } from 'pinia';
 import type { SymbolInfo } from 'klinecharts';
-import { useKlineFeed } from '@/composables/useKlineFeed';
-import { useKlineChart } from '@/composables/useKlineChart';
+import { useKlineFeed } from '../composables/useKlineFeed';
+import { useKlineChart } from '../composables/useKlineChart';
 import { DEFAULT_KLINE_SYMBOL, resolveKlineSymbolInfo } from '@/service/kline/symbol-info';
 import { useLeaderCoordinatorStore } from '@/stores/leader-coordinator';
 import { useQuoteSocketStore } from '@/stores/quote-socket';

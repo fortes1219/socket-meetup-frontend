@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { ref } from 'vue';
 import type { Period, SymbolInfo } from 'klinecharts';
-import { createKlineFeed, type KlineFeedQuoteSource } from '@/composables/useKlineFeed';
+import { createKlineFeed, type KlineFeedQuoteSource } from '@/views/home/composables/useKlineFeed';
 import type { Kline } from '@/service/api/klines';
 import type { KlineTick } from '@/service/socket/quote';
 

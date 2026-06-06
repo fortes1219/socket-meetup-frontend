@@ -6,12 +6,12 @@ import type { AppError } from '@/service/error';
 import type { PublicTradingPair } from '@/service/api/trading-pairs';
 
 const useCoordinationBootstrapMock = vi.hoisted(() => vi.fn());
-vi.mock('@/composables/useCoordinationBootstrap', () => ({
+vi.mock('@/views/home/composables/useCoordinationBootstrap', () => ({
   useCoordinationBootstrap: useCoordinationBootstrapMock
 }));
 
 // Home 唯一來源：mock useSelectedSymbol（含 query state + selection）。
-vi.mock('@/composables/useSelectedSymbol', async () => {
+vi.mock('@/views/home/composables/useSelectedSymbol', async () => {
   const { ref } = await import('vue');
   const state = {
     pairs: ref<PublicTradingPair[]>([]),
@@ -28,7 +28,7 @@ vi.mock('@/composables/useSelectedSymbol', async () => {
 import Home from '@/views/home/Home.vue';
 import KlineChart from '@/views/home/components/KlineChart.vue';
 import SymbolSelector from '@/views/home/components/SymbolSelector.vue';
-import { useSelectedSymbol } from '@/composables/useSelectedSymbol';
+import { useSelectedSymbol } from '@/views/home/composables/useSelectedSymbol';
 
 interface MockState {
   pairs: Ref<PublicTradingPair[]>;

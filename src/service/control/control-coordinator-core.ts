@@ -1,7 +1,7 @@
 import { ref, type Ref } from 'vue';
 import type { ControlAdapters } from '@/service/control/adapters';
 import type { TradingPairsGateway } from '@/queries/trading-pairs-gateway';
-import type { SocketEventThrottle, ThrottleConfig } from '@/composables/useSocketEventThrottle';
+import type { SocketEventThrottle, ThrottleConfig } from '@/service/control/socket-event-throttle';
 import type { PublicTradingPair } from '@/service/api/trading-pairs';
 import { compareLeaderTerm, type LeaderTerm } from '@/service/leader/leader-term';
 import {

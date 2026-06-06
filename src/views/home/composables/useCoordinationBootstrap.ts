@@ -4,7 +4,7 @@ import { useQuoteSocketStore } from '@/stores/quote-socket';
 import { useStatusSocketStore } from '@/stores/status-socket';
 import { useControlCoordinatorStore } from '@/stores/control-coordinator';
 import { getSocketHub } from '@/service/socket/manager';
-import { useSocketLifecycle } from '@/composables/useSocketLifecycle';
+import { useSocketLifecycle } from './useSocketLifecycle';
 
 /**
  * App 啟動時呼叫一次（App.vue setup）。集中 wiring，App.vue 不寫 socket / leader 細節：

@@ -2,10 +2,10 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { createPinia, setActivePinia } from 'pinia';
 import { effectScope, nextTick, ref } from 'vue';
 import type { SocketHub } from '@/service/socket/manager';
-import { useSocketLifecycle, type BindableSocketStore } from '@/composables/useSocketLifecycle';
+import { useSocketLifecycle, type BindableSocketStore } from '@/views/home/composables/useSocketLifecycle';
 import { useQuoteSocketStore } from '@/stores/quote-socket';
 import { useStatusSocketStore } from '@/stores/status-socket';
-import { createFakeSocket, type FakeSocket } from '../helpers/fake-socket';
+import { createFakeSocket, type FakeSocket } from '../../../helpers/fake-socket';
 
 function fakeHub(root: FakeSocket, quote: FakeSocket) {
   let hasManager = false;

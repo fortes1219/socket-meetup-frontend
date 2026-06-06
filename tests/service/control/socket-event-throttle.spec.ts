@@ -4,7 +4,7 @@ import {
   createSocketEventThrottle,
   throttleKeyOf,
   type ThrottleKey
-} from '@/composables/useSocketEventThrottle';
+} from '@/service/control/socket-event-throttle';
 
 function seededRandom(seed: number): () => number {
   let state = seed >>> 0;

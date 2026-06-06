@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue';
-import { useSelectedSymbol } from '@/composables/useSelectedSymbol';
-import { useCoordinationBootstrap } from '@/composables/useCoordinationBootstrap';
+import { useSelectedSymbol } from './composables/useSelectedSymbol';
+import { useCoordinationBootstrap } from './composables/useCoordinationBootstrap';
 import SymbolSelector from './components/SymbolSelector.vue';
 import KlineChart from './components/KlineChart.vue';
 import ControlDebugPanel from './components/ControlDebugPanel.vue';

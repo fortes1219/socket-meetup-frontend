@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { flushPromises } from '@vue/test-utils';
 import { ref, shallowRef } from 'vue';
 import { createControlCoordinator } from '@/service/control/control-coordinator-core';
-import { createSocketEventThrottle } from '@/composables/useSocketEventThrottle';
+import { createSocketEventThrottle } from '@/service/control/socket-event-throttle';
 import { createFakeLeaderEnv, type FakeLeaderEnv } from '../../helpers/fake-leader-env';
 import type { LeaderTerm } from '@/service/leader/leader-term';
 import type { PublicTradingPair } from '@/service/api/trading-pairs';

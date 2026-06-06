@@ -5,7 +5,7 @@ import { useStatusSocketStore } from '@/stores/status-socket';
 import { browserControlAdapters } from '@/service/control/adapters';
 import { createControlCoordinator } from '@/service/control/control-coordinator-core';
 import { createTradingPairsGateway } from '@/queries/trading-pairs-gateway';
-import { createSocketEventThrottle } from '@/composables/useSocketEventThrottle';
+import { createSocketEventThrottle } from '@/service/control/socket-event-throttle';
 import { queryClient } from '@/queries/query-client';
 
 /** control BroadcastChannel（app prefix；與 leader / quote 完全分離；只低頻 trading-pairs control）。 */

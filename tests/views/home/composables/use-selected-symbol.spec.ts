@@ -15,7 +15,7 @@ vi.mock('@/queries/use-trading-pairs-query', async () => {
   return { useTradingPairsQuery: () => state };
 });
 
-import { useSelectedSymbol, type UseSelectedSymbol } from '@/composables/useSelectedSymbol';
+import { useSelectedSymbol, type UseSelectedSymbol } from '@/views/home/composables/useSelectedSymbol';
 import { useTradingPairsQuery } from '@/queries/use-trading-pairs-query';
 import type { PublicTradingPair } from '@/service/api/trading-pairs';
 
