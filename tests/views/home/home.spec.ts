@@ -25,7 +25,7 @@ vi.mock('@/composables/useSelectedSymbol', async () => {
   return { useSelectedSymbol: () => state };
 });
 
-import Home from '@/views/Home.vue';
+import Home from '@/views/home/Home.vue';
 import KlineChart from '@/views/home/components/KlineChart.vue';
 import SymbolSelector from '@/views/home/components/SymbolSelector.vue';
 import { useSelectedSymbol } from '@/composables/useSelectedSymbol';

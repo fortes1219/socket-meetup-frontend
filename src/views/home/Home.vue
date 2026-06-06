@@ -2,9 +2,9 @@
 import { computed } from 'vue';
 import { useSelectedSymbol } from '@/composables/useSelectedSymbol';
 import { useCoordinationBootstrap } from '@/composables/useCoordinationBootstrap';
-import SymbolSelector from './home/components/SymbolSelector.vue';
-import KlineChart from './home/components/KlineChart.vue';
-import ControlDebugPanel from './home/components/ControlDebugPanel.vue';
+import SymbolSelector from './components/SymbolSelector.vue';
+import KlineChart from './components/KlineChart.vue';
+import ControlDebugPanel from './components/ControlDebugPanel.vue';
 
 useCoordinationBootstrap();
 

@@ -6,12 +6,12 @@ const router = createRouter({
     {
       path: '/',
       name: 'Home',
-      component: () => import('@/views/Home.vue')
+      component: () => import('@/views/home/Home.vue')
     },
     {
       path: '/manage/trading-pairs',
       name: 'AdminTradingPairs',
-      component: () => import('@/views/AdminTradingPairs.vue')
+      component: () => import('@/views/admin-trading-pairs/AdminTradingPairs.vue')
     }
   ]
 });

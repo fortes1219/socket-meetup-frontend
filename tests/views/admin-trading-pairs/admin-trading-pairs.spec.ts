@@ -28,7 +28,7 @@ vi.mock('@/queries/use-admin-trading-pairs-mutations', async () => {
   return { useCreatePair: () => create, usePatchPair: () => patch, useDeletePair: () => del };
 });
 
-import AdminTradingPairs from '@/views/AdminTradingPairs.vue';
+import AdminTradingPairs from '@/views/admin-trading-pairs/AdminTradingPairs.vue';
 import { useAdminTokenStore } from '@/stores/admin-token';
 import { useAdminTradingPairsQuery } from '@/queries/use-admin-trading-pairs-query';
 import { useCreatePair, useDeletePair, usePatchPair } from '@/queries/use-admin-trading-pairs-mutations';
