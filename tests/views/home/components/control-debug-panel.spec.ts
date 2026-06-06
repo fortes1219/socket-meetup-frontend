@@ -34,7 +34,7 @@ vi.mock('@/queries/use-trading-pairs-query', () => ({
   useTradingPairsQuery: (...a: unknown[]) => useTradingPairsQueryMock(...a)
 }));
 
-import ControlDebugPanel from '@/components/debug/ControlDebugPanel.vue';
+import ControlDebugPanel from '@/views/home/components/ControlDebugPanel.vue';
 
 const Passthrough = defineComponent({ template: '<div><slot /></div>' });
 const STUBS = { QCard: Passthrough, QCardSection: Passthrough };

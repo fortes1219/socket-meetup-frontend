@@ -33,7 +33,7 @@ vi.mock('@/stores/leader-coordinator', async () => {
 
 import { createPinia, setActivePinia } from 'pinia';
 import type { SymbolInfo } from 'klinecharts';
-import KlineChart from '@/components/kline/KlineChart.vue';
+import KlineChart from '@/views/home/components/KlineChart.vue';
 import { useKlineChart } from '@/composables/useKlineChart';
 import { KLINE_CHART_STYLES } from '@/service/kline/chart-styles';
 import { useLeaderCoordinatorStore } from '@/stores/leader-coordinator';

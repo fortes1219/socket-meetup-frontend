@@ -3,7 +3,7 @@ import { mount } from '@vue/test-utils';
 import { defineComponent, nextTick } from 'vue';
 import { createPinia, setActivePinia } from 'pinia';
 import { QueryClient, VueQueryPlugin } from '@tanstack/vue-query';
-import AdminTokenField from '@/components/admin/AdminTokenField.vue';
+import AdminTokenField from '@/views/admin-trading-pairs/components/AdminTokenField.vue';
 import { useAdminTokenStore } from '@/stores/admin-token';
 import { tradingPairKeys } from '@/queries/keys';
 

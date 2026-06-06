@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { mount } from '@vue/test-utils';
 import { defineComponent } from 'vue';
-import SymbolSelector from '@/components/kline/SymbolSelector.vue';
+import SymbolSelector from '@/views/home/components/SymbolSelector.vue';
 import type { PublicTradingPair } from '@/service/api/trading-pairs';
 
 // q-btn stub：真 button，轉發 click + 反映 disable，便於斷言 disabled 與點擊。

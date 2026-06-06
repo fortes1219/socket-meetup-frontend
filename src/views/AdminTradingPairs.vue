@@ -3,9 +3,9 @@ import { computed } from 'vue';
 import { useAdminTokenStore } from '@/stores/admin-token';
 import { useAdminTradingPairsQuery } from '@/queries/use-admin-trading-pairs-query';
 import { useCreatePair, useDeletePair, usePatchPair } from '@/queries/use-admin-trading-pairs-mutations';
-import AdminTokenField from '@/components/admin/AdminTokenField.vue';
-import CreatePairForm from '@/components/admin/CreatePairForm.vue';
-import AdminPairRow from '@/components/admin/AdminPairRow.vue';
+import AdminTokenField from './admin-trading-pairs/components/AdminTokenField.vue';
+import CreatePairForm from './admin-trading-pairs/components/CreatePairForm.vue';
+import AdminPairRow from './admin-trading-pairs/components/AdminPairRow.vue';
 
 const tokenStore = useAdminTokenStore();
 const query = useAdminTradingPairsQuery();
