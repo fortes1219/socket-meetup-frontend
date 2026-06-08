@@ -73,22 +73,6 @@
       <section class="section card">
         <p class="eyebrow">前後端責任切分</p>
         <h2>不是純 frontend mock</h2>
-        <div class="table-wrap responsibility-table">
-          <table>
-            <thead>
-              <tr><th>層級</th><th>職責</th></tr>
-            </thead>
-            <tbody>
-              <tr><td>Backend `/quote`</td><td>高頻 K 線 data plane，依 room 推送 realtime tick。</td></tr>
-              <tr><td>Backend `/`</td><td>低頻 control signal，CRUD commit 後 emit `callUpdate`。</td></tr>
-              <tr><td>Backend REST history</td><td>提供已收線、可追溯的 K 線 history。</td></tr>
-              <tr><td>Backend Admin API</td><td>strict validation、transaction、audit、commit 後 emit invalidation。</td></tr>
-              <tr><td>Frontend BroadcastChannel</td><td>只做 tab coordination，不傳 K 線 tick。</td></tr>
-              <tr><td>TanStack Query</td><td>管理 server state：trading-pairs REST data。</td></tr>
-              <tr><td>Pinia</td><td>管理 client coordination：leader role、socket state、subscription intent。</td></tr>
-            </tbody>
-          </table>
-        </div>
         <div class="responsibility-cards" aria-label="前後端責任切分手機版">
           <article><h3>Backend `/quote`</h3><p>高頻 K 線 data plane，依 room 推送 realtime tick。</p></article>
           <article><h3>Backend `/`</h3><p>低頻 control signal，CRUD commit 後 emit `callUpdate`。</p></article>
