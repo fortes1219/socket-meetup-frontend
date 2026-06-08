@@ -597,3 +597,42 @@ details p {
     content: none;
   }
 }
+
+/* Responsibility split: table on desktop, cards on mobile. */
+.responsibility-table {
+  display: none;
+}
+
+.responsibility-cards {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+}
+
+.responsibility-cards article {
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.035);
+  padding: 14px;
+}
+
+.responsibility-cards h3 {
+  margin-bottom: 6px;
+  color: var(--brand-2);
+  font-size: 0.98rem;
+}
+
+.responsibility-cards p {
+  margin-bottom: 0;
+  color: var(--muted);
+}
+
+@media (min-width: 761px) {
+  .responsibility-table {
+    display: block;
+  }
+
+  .responsibility-cards {
+    display: none;
+  }
+}

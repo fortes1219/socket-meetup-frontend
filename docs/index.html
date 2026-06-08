@@ -73,7 +73,7 @@
       <section class="section card">
         <p class="eyebrow">前後端責任切分</p>
         <h2>不是純 frontend mock</h2>
-        <div class="table-wrap">
+        <div class="table-wrap responsibility-table">
           <table>
             <thead>
               <tr><th>層級</th><th>職責</th></tr>
@@ -88,6 +88,15 @@
               <tr><td>Pinia</td><td>管理 client coordination：leader role、socket state、subscription intent。</td></tr>
             </tbody>
           </table>
+        </div>
+        <div class="responsibility-cards" aria-label="前後端責任切分手機版">
+          <article><h3>Backend `/quote`</h3><p>高頻 K 線 data plane，依 room 推送 realtime tick。</p></article>
+          <article><h3>Backend `/`</h3><p>低頻 control signal，CRUD commit 後 emit `callUpdate`。</p></article>
+          <article><h3>Backend REST history</h3><p>提供已收線、可追溯的 K 線 history。</p></article>
+          <article><h3>Backend Admin API</h3><p>strict validation、transaction、audit、commit 後 emit invalidation。</p></article>
+          <article><h3>Frontend BroadcastChannel</h3><p>只做 tab coordination，不傳 K 線 tick。</p></article>
+          <article><h3>TanStack Query</h3><p>管理 server state：trading-pairs REST data。</p></article>
+          <article><h3>Pinia</h3><p>管理 client coordination：leader role、socket state、subscription intent。</p></article>
         </div>
       </section>
 
@@ -308,3 +317,4 @@ professional trader: maxRealtimeOwners = 10</code></pre>
     </footer>
   </body>
 </html>
+
