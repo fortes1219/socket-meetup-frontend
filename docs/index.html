@@ -6,7 +6,7 @@
     <meta name="color-scheme" content="dark" />
     <meta
       name="description"
-      content="Vue Meetup Socket 即時資料治理導讀：Realtime Ownership、Control Plane、BroadcastChannel 與 Jitter Refetch。"
+      content="Vue Meetup Socket 即時資料治理導讀：Realtime Ownership、Control Plane、BroadcastChannel、K 線、Admin CRUD 與 Jitter Refetch。"
     />
     <title>Socket Meetup 導讀｜Realtime Ownership</title>
     <link rel="stylesheet" href="./styles.css" />
@@ -16,37 +16,79 @@
       <p class="eyebrow">Vue Meetup 導讀</p>
       <h1>Socket 即時資料治理</h1>
       <p class="lead">
-        這不是 K 線圖 demo，也不是聊天室 WebSocket demo。這場在講多分頁、高頻資料與交易操作頁中，前端如何治理 realtime ownership。
+        這不是 K 線圖 demo，也不是聊天室 WebSocket demo。這場在講多分頁、高頻資料、交易操作與 Admin CRUD 更新中，前端如何治理 realtime ownership、control plane 與 refetch storm。
       </p>
-      <div class="hero-actions" aria-label="快速連結">
-        <a href="#what">先懂主軸</a>
-        <a href="#demo">Demo 看什麼</a>
+      <nav class="hero-actions" aria-label="快速目錄">
+        <a href="#map">總覽</a>
+        <a href="#baseline">成本</a>
+        <a href="#ownership">Ownership</a>
+        <a href="#jitter">Jitter</a>
+        <a href="#demo">Demo</a>
         <a href="#qa">Q&A</a>
-      </div>
+      </nav>
     </header>
 
     <main>
-      <section id="what" class="section card emphasis">
+      <section id="map" class="section card emphasis">
         <p class="eyebrow">一句話</p>
         <h2>BroadcastChannel 不是行情資料匯流排</h2>
         <p>
-          它是分頁之間協調 realtime ownership 的 control plane。K 線 tick 不進 BroadcastChannel；只有 control message 會跨分頁。
+          它是分頁之間協調 realtime ownership 的 control plane。K 線 tick 不進 BroadcastChannel；只有 leader election、release、invalidation、snapshot、sync request 這類 control message 會跨分頁。
         </p>
+        <div class="callout">
+          <strong>今天要記住：</strong>前端不是只有畫 UI。每個 client 都會製造連線、流量、request、render 與記憶體成本。
+        </div>
+      </section>
+
+      <section class="section card">
+        <p class="eyebrow">這場不是什麼</p>
+        <h2>不是要你把所有 Vue 專案都寫成這樣</h2>
+        <div class="split">
+          <div>
+            <h3>不是一般 CRUD 教學</h3>
+            <p>如果你現在只做一般後台、表單、列表，這不是明天照抄的模式。</p>
+          </div>
+          <div>
+            <h3>是高併發問題定義</h3>
+            <p>如果你未來碰到高頻資料、多人在線、多分頁、多裝置、金融交易或即時操作，這些問題會變成系統成本。</p>
+          </div>
+        </div>
       </section>
 
       <section class="section grid three">
-        <article class="card">
+        <article class="card mini">
           <h3>Realtime owner</h3>
           <p>有資格直接連 `/quote`、接收 realtime K 線 tick 的分頁。</p>
         </article>
-        <article class="card">
+        <article class="card mini">
           <h3>Data plane</h3>
           <p>高頻資料通道，例如 Binance kline tick → backend `/quote` → leader tab。</p>
         </article>
-        <article class="card">
+        <article class="card mini">
           <h3>Control plane</h3>
-          <p>低頻協調通道，例如 leader election、callUpdate、snapshot、jitter refetch。</p>
+          <p>低頻協調通道，例如 leader election、`callUpdate`、snapshot、jitter refetch。</p>
         </article>
+      </section>
+
+      <section class="section card">
+        <p class="eyebrow">前後端責任切分</p>
+        <h2>不是純 frontend mock</h2>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr><th>層級</th><th>職責</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>Backend `/quote`</td><td>高頻 K 線 data plane，依 room 推送 realtime tick。</td></tr>
+              <tr><td>Backend `/`</td><td>低頻 control signal，CRUD commit 後 emit `callUpdate`。</td></tr>
+              <tr><td>Backend REST history</td><td>提供已收線、可追溯的 K 線 history。</td></tr>
+              <tr><td>Backend Admin API</td><td>strict validation、transaction、audit、commit 後 emit invalidation。</td></tr>
+              <tr><td>Frontend BroadcastChannel</td><td>只做 tab coordination，不傳 K 線 tick。</td></tr>
+              <tr><td>TanStack Query</td><td>管理 server state：trading-pairs REST data。</td></tr>
+              <tr><td>Pinia</td><td>管理 client coordination：leader role、socket state、subscription intent。</td></tr>
+            </tbody>
+          </table>
+        </div>
       </section>
 
       <section id="baseline" class="section card">
@@ -69,12 +111,7 @@ reduction = (1.45 - 1) / 1.45 = 31.03%</code></pre>
         <div class="table-wrap">
           <table>
             <thead>
-              <tr>
-                <th>線上用戶</th>
-                <th>每頁都吃 stream</th>
-                <th>每人 1 owner</th>
-                <th>少掉 streams</th>
-              </tr>
+              <tr><th>線上用戶</th><th>每頁都吃 stream</th><th>每人 1 owner</th><th>少掉 streams</th></tr>
             </thead>
             <tbody>
               <tr><td>10,000</td><td>14,500</td><td>10,000</td><td>4,500</td></tr>
@@ -90,35 +127,67 @@ reduction = (1.45 - 1) / 1.45 = 31.03%</code></pre>
       <section class="section card">
         <p class="eyebrow">Tradeoff</p>
         <h2>不是只有一種最佳解</h2>
-        <div class="compare">
+        <div class="compare four">
           <div>
             <h3>每頁都連 socket</h3>
             <p>最簡單，但後端 fan-out 與前端更新成本線性膨脹。</p>
           </div>
           <div>
-            <h3>Ticker bus / SharedWorker</h3>
-            <p>可以降低 socket 數，但仍要把 tick 分發到每個分頁，背景分頁仍可能更新 store / chart。</p>
+            <h3>Ticker bus</h3>
+            <p>Socket 數少，但 tick 仍要 fan-out 到所有分頁，背景 UI 仍可能消耗。</p>
+          </div>
+          <div>
+            <h3>SharedWorker</h3>
+            <p>可以中心化 socket，但有舊 iOS / Safari 支援、port reconnect、worker recovery 等 tradeoff。</p>
           </div>
           <div>
             <h3>Realtime owner</h3>
             <p>控制誰能直接吃 realtime。Demo 用 1 個 owner；production 應由 backend policy 決定 quota。</p>
           </div>
         </div>
+        <p class="note">對 ticker bus / SharedWorker，realtime owner 贏的不是 socket 數，而是 follower 不跑 market tick 的 render pipeline，以及交易操作頁不吃二手 tick。</p>
       </section>
 
-      <section id="flow" class="section card">
-        <p class="eyebrow">事件流</p>
-        <h2>Data plane 與 control plane 分離</h2>
+      <section id="ownership" class="section card">
+        <p class="eyebrow">Leader / Follower</p>
+        <h2>誰有資格 realtime，要被治理</h2>
         <ol class="steps">
-          <li><strong>K 線 tick：</strong>Backend `/quote` 只推給 realtime owner，更新圖表。</li>
-          <li><strong>Admin CRUD：</strong>Backend commit 後 emit `callUpdate`。</li>
-          <li><strong>Local invalidation：</strong>前端立刻標記 resource stale，不打 API。</li>
-          <li><strong>Network refetch：</strong>會打 API 的 authoritative snapshot 才做 jitter。</li>
-          <li><strong>BroadcastChannel：</strong>只傳 control message，不傳 K 線 tick。</li>
+          <li>同 origin 分頁透過 BroadcastChannel 協調 realtime owner。</li>
+          <li>Leader 才連 `/quote` 並 subscribe 當前交易對。</li>
+          <li>Follower 可以看 history，但不吃 realtime tick。</li>
+          <li>需要操作的分頁可重新取得 realtime ownership。</li>
+          <li>新 owner 取得權限後：reload history + reconnect socket + resubscribe。</li>
         </ol>
+        <div class="callout muted">
+          單一分頁短暫離焦不應該粗暴斷線。DevTools、切視窗、查資料都不該讓 socket 無故抖動。handoff 應該是有其他可見操作頁要求 realtime ownership 時發生。
+        </div>
       </section>
 
       <section class="section card">
+        <p class="eyebrow">K 線資料</p>
+        <h2>History 走 REST，realtime 走 socket</h2>
+        <div class="split">
+          <div>
+            <h3>Frontend</h3>
+            <ul class="check-list">
+              <li>`getBars` 從 REST 拿 history。</li>
+              <li>`subscribeBar` 從 `/quote` 收 realtime tick。</li>
+              <li>klinecharts same timestamp 是 overwrite，不是 append duplicate。</li>
+              <li>resume 時 reload history，避免資料斷層。</li>
+            </ul>
+          </div>
+          <div>
+            <h3>Backend</h3>
+            <ul class="check-list">
+              <li>unclosed tick → emit to `/quote`。</li>
+              <li>closed kline → upsert DB，成為 history。</li>
+              <li>wire 金額用 string，避免 JS number 破壞精度。</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <section id="jitter" class="section card">
         <p class="eyebrow">Refetch storm</p>
         <h2>Jitter 省的是尖峰 QPS</h2>
         <pre><code>No jitter:
@@ -130,12 +199,7 @@ peak ≈ N / W QPS</code></pre>
         <div class="table-wrap">
           <table>
             <thead>
-              <tr>
-                <th>owners</th>
-                <th>window</th>
-                <th>naive peak</th>
-                <th>jitter peak</th>
-              </tr>
+              <tr><th>owners</th><th>window</th><th>naive peak</th><th>jitter peak</th></tr>
             </thead>
             <tbody>
               <tr><td>10,000</td><td>10s</td><td>10,000 QPS</td><td>1,000 QPS</td></tr>
@@ -147,26 +211,19 @@ peak ≈ N / W QPS</code></pre>
         <p class="note">Dedupe 解同一瀏覽器內重複排隊；jitter 解跨使用者同時 refetch 的尖峰。總 request 數不會憑空消失。</p>
       </section>
 
-      <section id="demo" class="section card">
-        <p class="eyebrow">現場 Demo</p>
-        <h2>你要看什麼</h2>
-        <div class="demo-list">
-          <article>
-            <h3>A. Home realtime owner</h3>
-            <p>BTCUSDT K 線 history + realtime 現價跳動。</p>
-          </article>
-          <article>
-            <h3>B. 第二分頁 follower / reclaim</h3>
-            <p>Follower 不開 realtime socket；需要操作時重新取得 realtime owner。</p>
-          </article>
-          <article>
-            <h3>C. 交易對切換</h3>
-            <p>BTCUSDT / ETHUSDT 切換會 reload history + resubscribe；ADAUSDT disabled。</p>
-          </article>
-          <article>
-            <h3>D. Admin CRUD</h3>
-            <p>Admin mutation commit 後 `callUpdate`，Home 經 control coordinator 與 jitter refetch 更新。</p>
-          </article>
+      <section class="section card">
+        <p class="eyebrow">Admin CRUD</p>
+        <h2>commit 後才 emit `callUpdate`</h2>
+        <ol class="steps">
+          <li>Admin 呼叫 POST / PATCH / DELETE。</li>
+          <li>Backend strict validation。</li>
+          <li>DB transaction + audit。</li>
+          <li>commit 成功。</li>
+          <li>Backend emit `callUpdate({ resource: 'trading-pairs' })`。</li>
+          <li>Frontend 立刻 invalidation，network refetch 才 jitter。</li>
+        </ol>
+        <div class="callout">
+          `callUpdate` 是 committed invalidation signal，不是資料本體，也不是 optimistic event。
         </div>
       </section>
 
@@ -178,25 +235,60 @@ peak ≈ N / W QPS</code></pre>
         </p>
       </section>
 
+      <section class="section card">
+        <p class="eyebrow">State ownership</p>
+        <h2>不要把所有東西塞進同一個 store</h2>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>資料類型</th><th>Owner</th></tr></thead>
+            <tbody>
+              <tr><td>leader role / socket state / current subscription</td><td>Pinia</td></tr>
+              <tr><td>trading-pairs REST data</td><td>TanStack Query</td></tr>
+              <tr><td>K 線 history</td><td>klinecharts DataLoader + REST API</td></tr>
+              <tr><td>realtime tick</td><td>`/quote` socket + realtime owner tab</td></tr>
+              <tr><td>`callUpdate` control signal</td><td>`/` socket + control coordinator</td></tr>
+              <tr><td>cross-tab coordination</td><td>BroadcastChannel</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section id="demo" class="section card">
+        <p class="eyebrow">現場 Demo</p>
+        <h2>你要看什麼</h2>
+        <div class="demo-list">
+          <article><h3>A. Home realtime owner</h3><p>BTCUSDT K 線 history + realtime 現價跳動。</p></article>
+          <article><h3>B. 第二分頁 follower / reclaim</h3><p>Follower 不開 realtime socket；需要操作時重新取得 realtime owner。</p></article>
+          <article><h3>C. 交易對切換</h3><p>BTCUSDT / ETHUSDT 切換會 reload history + resubscribe；ADAUSDT disabled。</p></article>
+          <article><h3>D. Admin CRUD</h3><p>Admin mutation commit 後 `callUpdate`，Home 經 control coordinator 與 jitter refetch 更新。</p></article>
+        </div>
+      </section>
+
+      <section class="section card">
+        <p class="eyebrow">Production policy</p>
+        <h2>`maxRealtimeOwners = 1` 是 demo policy</h2>
+        <pre><code>mobile user: maxRealtimeOwners = 1
+desktop user: maxRealtimeOwners = 3 或 5
+professional trader: maxRealtimeOwners = 10</code></pre>
+        <p>真正產品不應硬鎖死一個，也不該讓所有分頁無限制連線。前端要有 coordination 能力，後端要有 policy 能力。</p>
+      </section>
+
+      <section class="section card">
+        <p class="eyebrow">AI workflow</p>
+        <h2>AI-assisted，不是 AI-validated</h2>
+        <p>這個 demo 用 AI 加速實作，但不讓 AI 自己放行 correctness。流程裡保留 contract、rules、handoff、review gate、delivery evidence、not-run / pending notes。</p>
+      </section>
+
       <section id="qa" class="section card">
         <p class="eyebrow">Q&A 快速版</p>
         <h2>容易被問的問題</h2>
-        <details>
-          <summary>為什麼不用 SharedWorker？</summary>
-          <p>可以，但它不是免費解。舊 iOS / Safari 支援度、port reconnect、subscription cleanup、worker recovery、資料仍要分發到每個分頁，都是 tradeoff。</p>
-        </details>
-        <details>
-          <summary>為什麼不把 tick 用 BroadcastChannel 發給其他分頁？</summary>
-          <p>那會把問題從後端 fan-out 變成前端 fan-out。交易操作頁也不應依賴其他分頁 parse 後 structured clone 過來的二手 tick。</p>
-        </details>
-        <details>
-          <summary>如果真的多螢幕看多幣種？</summary>
-          <p>這是合理需求，但應由 backend policy 決定 maxRealtimeOwners，例如手機 1、桌機 3 到 5、專業帳號 10。</p>
-        </details>
-        <details>
-          <summary>trading-pairs 可以 CDN cache 嗎？</summary>
-          <p>展示 metadata 可以 cache；tradeable、halt、suspension、session close 這類狀態不能只靠 TTL。需要 push invalidation 讓 client 先進保守狀態，再 refetch authoritative snapshot。</p>
-        </details>
+        <details><summary>Junior 聽得懂嗎？</summary><p>可以聽懂問題，但不一定立刻用到。先記住：前端也會製造系統成本。</p></details>
+        <details><summary>為什麼不用 SharedWorker？</summary><p>可以，但它不是免費解。舊 iOS / Safari 支援度、port reconnect、subscription cleanup、worker recovery、資料仍要分發到每個分頁，都是 tradeoff。</p></details>
+        <details><summary>為什麼不把 tick 用 BroadcastChannel 發給其他分頁？</summary><p>那會把問題從後端 fan-out 變成前端 fan-out。交易操作頁也不應依賴其他分頁 parse 後 structured clone 過來的二手 tick。</p></details>
+        <details><summary>如果真的多螢幕看多幣種？</summary><p>這是合理需求，但應由 backend policy 決定 maxRealtimeOwners，例如手機 1、桌機 3 到 5、專業帳號 10。</p></details>
+        <details><summary>trading-pairs 可以 CDN cache 嗎？</summary><p>展示 metadata 可以 cache；tradeable、halt、suspension、session close 這類狀態不能只靠 TTL。需要 push invalidation 讓 client 先進保守狀態，再 refetch authoritative snapshot。</p></details>
+        <details><summary>commit 成功但 broadcast 失敗怎麼辦？</summary><p>不能叫前端重送 mutation，因為 DB 已經 commit。正確語意是 client refetch 或等待下一次 sync。</p></details>
+        <details><summary>為什麼 closed K 線才落 DB？</summary><p>未收線 tick 是 presentation realtime。收線 K 線才是可持久化 history，resume 時 REST history 才有穩定語意。</p></details>
       </section>
 
       <section class="section repos">
@@ -216,4 +308,3 @@ peak ≈ N / W QPS</code></pre>
     </footer>
   </body>
 </html>
-

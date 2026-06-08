@@ -344,3 +344,41 @@ details p {
     transition: none;
   }
 }
+
+
+/* Expanded guide helpers */
+.mini {
+  box-shadow: none;
+}
+
+.split {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+}
+
+.callout {
+  margin-top: 18px;
+  padding: 14px 16px;
+  border: 1px solid rgba(54, 211, 153, 0.32);
+  border-radius: 16px;
+  background: rgba(54, 211, 153, 0.08);
+  color: #dffced;
+}
+
+.callout.muted {
+  border-color: var(--line);
+  background: rgba(255, 255, 255, 0.035);
+  color: var(--muted);
+}
+
+.compare.four {
+  grid-template-columns: repeat(4, 1fr);
+}
+
+@media (max-width: 760px) {
+  .compare.four,
+  .split {
+    grid-template-columns: 1fr;
+  }
+}
