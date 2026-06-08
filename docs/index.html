@@ -114,7 +114,7 @@ reduction = (1.45 - 1) / 1.45 = 31.03%</code></pre>
             </tbody>
           </table>
         </div>
-        <p class="note">比例固定，因為平均頁面數假設固定。真正隨規模放大的是少掉的 realtime streams 絕對數量。</p>
+        <p class="note">比例固定，因為平均頁面數假設固定。真正隨規模放大的是少掉的 realtime streams 絕對數量。這不是 production 壓測；它對「5% 使用者開 5 頁」這種尾端假設敏感，背景分頁也會被瀏覽器節流，不能把 client render 端實省直接硬套成 31%。</p>
       </section>
 
       <section class="section card">
@@ -138,7 +138,7 @@ reduction = (1.45 - 1) / 1.45 = 31.03%</code></pre>
             <p>控制誰能直接吃 realtime。Demo 用 1 個 owner；production 應由 backend policy 決定 quota。</p>
           </div>
         </div>
-        <p class="note">對 ticker bus / SharedWorker，realtime owner 贏的不是 socket 數，而是 follower 不跑 market tick 的 render pipeline，以及交易操作頁不吃二手 tick。</p>
+        <p class="note">上面的 31% 是對 naive per-tab baseline 算的。對 ticker bus / SharedWorker，realtime owner 贏的不是 socket 數，而是 follower 不跑 market tick 的 render pipeline，以及交易操作頁不吃二手 tick。</p>
       </section>
 
       <section id="ownership" class="section card">
@@ -195,13 +195,13 @@ peak ≈ N / W QPS</code></pre>
               <tr><th>owners</th><th>window</th><th>naive peak</th><th>jitter peak</th></tr>
             </thead>
             <tbody>
-              <tr><td>10,000</td><td>10s</td><td>10,000 QPS</td><td>1,000 QPS</td></tr>
-              <tr><td>100,000</td><td>10s</td><td>100,000 QPS</td><td>10,000 QPS</td></tr>
-              <tr><td>800,000</td><td>10s</td><td>800,000 QPS</td><td>80,000 QPS</td></tr>
+              <tr><td>10,000</td><td>example 10s</td><td>10,000 QPS</td><td>1,000 QPS</td></tr>
+              <tr><td>100,000</td><td>example 10s</td><td>100,000 QPS</td><td>10,000 QPS</td></tr>
+              <tr><td>800,000</td><td>example 10s</td><td>800,000 QPS</td><td>80,000 QPS</td></tr>
             </tbody>
           </table>
         </div>
-        <p class="note">Dedupe 解同一瀏覽器內重複排隊；jitter 解跨使用者同時 refetch 的尖峰。總 request 數不會憑空消失。</p>
+        <p class="note">Dedupe 解同一瀏覽器內重複排隊；jitter 解跨使用者同時 refetch 的尖峰。表格的 10s 是公式示意值；demo 實作的 throttle window 約 2-6s，為了現場反應速度較短。Production 應依 resource 風險與可接受延遲調整 W。總 request 數不會憑空消失。</p>
       </section>
 
       <section class="section card">
