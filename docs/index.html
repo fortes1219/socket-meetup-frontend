@@ -95,6 +95,23 @@
         </ul>
       </section>
 
+
+      <section class="section card">
+        <p class="eyebrow">Policy</p>
+        <h2>先定義 Realtime Owner</h2>
+        <p>這場講的不是「永遠只准一個分頁連線」，而是把 realtime 權限變成可治理的 policy。</p>
+        <div class="callout muted">
+          <strong>Realtime owner</strong>：被允許直接連 <code>/quote</code>、直接消費 realtime tick 的頁面。<br />
+          <strong>Follower</strong>：不連 <code>/quote</code>，可以看 REST history，需要時重新取得 realtime 權限。<br />
+          <strong>Policy</strong>：系統決定同一個使用者最多允許幾個 realtime owners。
+        </div>
+        <ul class="check-list">
+          <li>Demo policy：<code>maxRealtimeOwners = 1</code>，用來把 ownership 問題講清楚。</li>
+          <li>Production policy：可依 user / device / plan / product mode 調整。</li>
+          <li>重點不是鎖死一個，而是不要讓所有分頁無限制吃 realtime stream。</li>
+        </ul>
+      </section>
+
       <section class="section card">
         <p class="eyebrow">容量估算</p>
         <h2>31% 是 stream reduction 的規模感，不是壓測結果</h2>
@@ -120,6 +137,9 @@ reduction = (1.45 - 1) / 1.45 = 31.03%</code></pre>
       <section class="section card">
         <p class="eyebrow">Tradeoff</p>
         <h2>不是只有一種最佳解</h2>
+        <div class="callout muted">
+          <strong>Ticker bus</strong> 不是特定 library，而是一種資料分發模式：一個中心收行情，再把 tick 分發給其他分頁。這個中心可以是 leader tab，也可以是 SharedWorker。它能壓低 socket 數，但 follower 仍會收到 market tick，仍可能跑 parse / normalize / store / chart / render。
+        </div>
         <div class="compare four">
           <div>
             <h3>每頁都連 socket</h3>
@@ -202,6 +222,9 @@ peak ≈ N / W QPS</code></pre>
           </table>
         </div>
         <p class="note">Dedupe 解同一瀏覽器內重複排隊；jitter 解跨使用者同時 refetch 的尖峰。表格的 10s 是公式示意值；demo 實作的 throttle window 約 2-6s，為了現場反應速度較短。Production 應依 resource 風險與可接受延遲調整 W。總 request 數不會憑空消失。</p>
+        <div class="callout muted">
+          <strong>九宮格同交易對畫面：</strong>Admin CRUD 1 次，不應該讓 9 個 Home 同時 refetch。正常流程是 leader 收到 <code>callUpdate</code>，經過 dedupe / jitter 後 refetch <code>/api/v1/trading-pairs</code> 1 次，再把 snapshot 透過 BroadcastChannel 給 follower 套用。BroadcastChannel 在這裡是 refetch coordination bus，不是行情 tick bus。
+        </div>
       </section>
 
       <section class="section card">
@@ -213,7 +236,7 @@ peak ≈ N / W QPS</code></pre>
           <li>DB transaction + audit。</li>
           <li>commit 成功。</li>
           <li>Backend emit `callUpdate({ resource: 'trading-pairs' })`。</li>
-          <li>Frontend 立刻 invalidation，network refetch 才 jitter。</li>
+          <li>Frontend 立刻 invalidation；leader 的 network refetch 才 jitter，follower 套用 snapshot。</li>
         </ol>
         <div class="callout">
           `callUpdate` 是 committed invalidation signal，不是資料本體，也不是 optimistic event。
